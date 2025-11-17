@@ -1,0 +1,154 @@
+# Wagtail Thumbnail Choice Block
+
+A reusable Wagtail block that displays thumbnail images for choice fields, making it easier for content editors to visually select options.
+
+## Features
+
+- **Visual Selection**: Display thumbnail images (recommended 80x80px) for each choice option
+- **Accessible**: Built on Django's standard RadioSelect widget with full keyboard navigation
+- **Responsive**: Works seamlessly with Wagtail's responsive admin interface
+- **Easy Integration**: Simple API similar to Wagtail's built-in ChoiceBlock
+- **Portable**: Self-contained package with no external dependencies beyond Django and Wagtail
+
+## Installation
+
+```bash
+pip install wagtail-thumbnail-choice-block
+```
+
+Add to your Django `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    # ...
+    'wagtail_thumbnail_choice_block',
+    # ...
+]
+```
+
+## Usage
+
+```python
+from wagtail import blocks
+from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+
+class BannerSettings(blocks.StructBlock):
+    theme = ThumbnailChoiceBlock(
+        choices=(
+            ('light', 'Light Theme'),
+            ('dark', 'Dark Theme'),
+            ('auto', 'Auto'),
+        ),
+        thumbnails={
+            'light': '/static/images/theme-light-thumb.png',
+            'dark': '/static/images/theme-dark-thumb.png',
+            'auto': '/static/images/theme-auto-thumb.png',
+        },
+        default='light',
+    )
+```
+
+## API
+
+### ThumbnailChoiceBlock
+
+Extends Wagtail's `ChoiceBlock` with thumbnail support.
+
+**Parameters:**
+
+- `choices` (required): List of (value, label) tuples for the choice options
+- `thumbnails` (required): Dictionary mapping choice values to thumbnail image URLs/paths
+- `default`: Default selected value
+- `**kwargs`: Any additional arguments supported by Wagtail's ChoiceBlock
+
+### ThumbnailRadioSelect
+
+The underlying Django widget. Can be used directly in Django forms.
+
+**Parameters:**
+
+- `attrs`: HTML attributes for the widget
+- `choices`: Available choices for the radio select
+- `thumbnail_mapping`: Dictionary mapping choice values to thumbnail URLs/paths
+
+## Thumbnail Images
+
+For best results:
+- Use square images (80x80px recommended)
+- Supported formats: PNG, JPG, SVG, WebP
+- Images should clearly represent each option
+- Consider both light and dark mode compatibility
+
+## Styling
+
+The widget includes default CSS that can be customized by overriding these classes:
+
+- `.thumbnail-radio-select` - Container div
+- `.thumbnail-radio-option` - Individual option label
+- `.thumbnail-radio-option.selected` - Selected option state
+- `.thumbnail-wrapper` - Thumbnail image container
+- `.thumbnail-image` - The thumbnail image itself
+- `.thumbnail-label` - The option label text
+
+## Requirements
+
+- Python >= 3.8
+- Django >= 4.2
+- Wagtail >= 5.0
+
+## Development
+
+```bash
+# Clone the repository
+git clone https://github.com/lincolnloop/wagtail-thumbnail-choice-block.git
+cd wagtail-thumbnail-choice-block
+
+# Install in development mode
+pip install -e ".[dev,accessibility]"
+
+# Run tests except for accessibility tests
+pytest -m "not accessibility"
+
+# Run accessibility tests (requires Chrome/ChromeDriver)
+pip install -e ".[accessibility]"
+pytest tests/test_accessibility_axe.py -m accessibility
+
+# Run all tests
+pytest
+```
+
+### Accessibility Testing
+
+The package includes automated accessibility tests using axe-core via selenium-axe-python. These tests verify:
+
+- WCAG 2.1 Level AA compliance
+- Keyboard accessibility
+- Screen reader compatibility
+- Color contrast requirements
+
+To run accessibility tests:
+
+```bash
+# Install accessibility testing dependencies
+pip install -e ".[accessibility]"
+
+# Run only accessibility tests
+pytest tests/test_accessibility_axe.py -m accessibility
+
+# Or run all tests including accessibility
+pytest
+```
+
+**Note:** Accessibility tests require a web browser (Chrome or Firefox) and the corresponding WebDriver to be available on your system.
+
+## License
+
+This project is licensed under the MIT License.
+
+## Credits
+
+Developed by Lincoln Loop.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

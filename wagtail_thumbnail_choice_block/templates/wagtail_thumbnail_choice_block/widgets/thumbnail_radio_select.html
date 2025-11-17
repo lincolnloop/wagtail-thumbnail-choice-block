@@ -1,0 +1,22 @@
+<div{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}{% if widget.attrs.class %} class="thumbnail-radio-select {{ widget.attrs.class }}"{% else %} class="thumbnail-radio-select"{% endif %}>
+{% for group, options, index in widget.optgroups %}
+  {% if group %}
+    <div class="thumbnail-radio-group">
+      {% if label %}<span class="thumbnail-radio-group-label">{{ label }}</span>{% endif %}
+  {% endif %}
+  {% for option in options %}
+    <label{% if option.attrs.id %} for="{{ option.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if option.attrs.checked %} selected{% endif %}">
+      <input type="{{ option.type }}" name="{{ option.name }}"{% if option.value != None %} value="{{ option.value }}"{% endif %}{% for name, value in option.attrs.items %} {{ name }}{% if value != True %}="{{ value }}"{% endif %}{% endfor %}>
+      <span class="thumbnail-wrapper">
+        {% if option.thumbnail_url %}
+          <img src="{{ option.thumbnail_url }}" alt="{{ option.label }}" class="thumbnail-image">
+        {% else %}
+          <span class="thumbnail-placeholder"></span>
+        {% endif %}
+      </span>
+      <span class="thumbnail-label">{{ option.label }}</span>
+    </label>
+  {% endfor %}
+  {% if group %}</div>{% endif %}
+{% endfor %}
+</div>

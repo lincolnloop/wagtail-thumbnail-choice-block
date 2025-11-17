@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wagtail-thumbnail-choice-block"
+version = "0.1.0"
+description = "A Wagtail block that displays thumbnail images for choice fields"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MPL-2.0"}
+authors = [
+    {name = "Lincoln Loop"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Framework :: Wagtail",
+    "Framework :: Wagtail :: 5",
+    "Framework :: Wagtail :: 6",
+    "Framework :: Wagtail :: 7",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+dependencies = [
+    "Django>=4.2",
+    "wagtail>=5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-django>=4.5",
+    "pytest-cov>=4.0",
+    "django-taggit>=3.0",
+    "ruff",
+]
+accessibility = [
+    "selenium>=4.0",
+    "selenium-axe-python>=2.1",
+]
+test = [
+    "pytest>=7.0",
+    "pytest-django>=4.5",
+    "pytest-cov>=4.0",
+    "django-taggit>=3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/lincolnloop/wagtail-thumbnail-choice-block"
+Repository = "https://github.com/lincolnloop/wagtail-thumbnail-choice-block"
+Issues = "https://github.com/lincolnloop/wagtail-thumbnail-choice-block/issues"
+
+[tool.setuptools.packages.find]
+include = ["wagtail_thumbnail_choice_block*"]
+
+[tool.setuptools.package-data]
+wagtail_thumbnail_choice_block = [
+    "templates/**/*.html",
+    "static/**/*",
+]

@@ -28,6 +28,8 @@ INSTALLED_APPS = [
 
 ## Usage
 
+### Basic Usage
+
 ```python
 from wagtail import blocks
 from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
@@ -47,6 +49,46 @@ class BannerSettings(blocks.StructBlock):
         default='light',
     )
 ```
+
+### Dynamic Choices with Callables
+
+Both `choices` and `thumbnails` can be callables (functions) that return the data. This is useful when you need to generate choices dynamically from the database or other runtime sources.
+
+#### Example: Selecting from Django Models
+
+```python
+from wagtail import blocks
+from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+from myapp.models import Category
+
+def get_category_choices():
+    """Generate choices from Category model."""
+    return [
+        (str(category.id), category.name)
+        for category in Category.objects.filter(active=True)
+    ]
+
+def get_category_thumbnails():
+    """Generate thumbnail mapping from Category model."""
+    return {
+        str(category.id): category.icon.url
+        for category in Category.objects.filter(active=True)
+        if category.icon
+    }
+
+class ContentBlock(blocks.StructBlock):
+    category = ThumbnailChoiceBlock(
+        choices=get_category_choices,
+        thumbnails=get_category_thumbnails,
+    )
+```
+
+**Important Notes:**
+
+- Callables are evaluated at render time, so choices will always reflect the current database state
+- Callables should be efficient as they may be called multiple times during form rendering
+- Consider caching if your callable performs expensive database queries
+- Callables should handle cases where data might not exist (e.g., missing images)
 
 ## API
 

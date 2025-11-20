@@ -18,13 +18,13 @@ class TestThumbnailChoiceBlock(TestCase):
             thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
         )
 
-        assert block.thumbnails == {"a": "/test/a.png", "b": "/test/b.png"}
+        assert block._thumbnails_source == {"a": "/test/a.png", "b": "/test/b.png"}
 
     def test_block_initialization_without_thumbnails(self):
         """Test that block works without thumbnails."""
         block = ThumbnailChoiceBlock(choices=[("a", "Option A"), ("b", "Option B")])
 
-        assert block.thumbnails == {}
+        assert block._thumbnails_source is None
 
     def test_block_uses_custom_widget(self):
         """Test that block uses ThumbnailRadioSelect widget."""
@@ -117,3 +117,87 @@ class TestThumbnailChoiceBlock(TestCase):
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
             " ", ""
         ).replace("\n", "")
+
+    def test_block_with_callable_choices(self):
+        """Test that block works with callable choices."""
+
+        def get_choices():
+            return [("x", "Option X"), ("y", "Option Y"), ("z", "Option Z")]
+
+        block = ThumbnailChoiceBlock(
+            choices=get_choices, thumbnails={"x": "/test/x.png"}
+        )
+
+        # Check that choices are resolved
+        field = block.field
+        choices = list(field.choices)
+
+        assert ("x", "Option X") in choices
+        assert ("y", "Option Y") in choices
+        assert ("z", "Option Z") in choices
+
+    def test_block_with_callable_thumbnails(self):
+        """Test that block works with callable thumbnails."""
+
+        def get_thumbnails():
+            return {"a": "/dynamic/a.png", "b": "/dynamic/b.png"}
+
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")], thumbnails=get_thumbnails
+        )
+
+        # Check that thumbnails are resolved
+        field = block.field
+        assert field.widget.thumbnail_mapping == {
+            "a": "/dynamic/a.png",
+            "b": "/dynamic/b.png",
+        }
+
+    def test_block_with_both_callable(self):
+        """Test that block works with both choices and thumbnails as callables."""
+
+        def get_choices():
+            return [("m", "Option M"), ("n", "Option N")]
+
+        def get_thumbnails():
+            return {"m": "/dynamic/m.png", "n": "/dynamic/n.png"}
+
+        block = ThumbnailChoiceBlock(choices=get_choices, thumbnails=get_thumbnails)
+
+        # Check that both are resolved
+        field = block.field
+        choices = list(field.choices)
+
+        assert ("m", "Option M") in choices
+        assert ("n", "Option N") in choices
+        assert field.widget.thumbnail_mapping == {
+            "m": "/dynamic/m.png",
+            "n": "/dynamic/n.png",
+        }
+
+    def test_callable_choices_evaluated_at_render_time(self):
+        """Test that callable choices are evaluated at render time."""
+        # Simulate a dynamic data source
+        test_data = {"choices": [("a", "Initial A")]}
+
+        def get_choices():
+            return test_data["choices"]
+
+        block = ThumbnailChoiceBlock(choices=get_choices, thumbnails={})
+
+        # Initial render
+        field = block.field
+        choices = list(field.choices)
+        assert ("a", "Initial A") in choices
+
+        # Change the data source
+        test_data["choices"] = [("b", "Updated B"), ("c", "Updated C")]
+
+        # Get form state (simulating a new render)
+        block.get_form_state("b")
+
+        # Check that choices have been updated
+        field = block.field
+        choices = list(field.choices)
+        assert ("b", "Updated B") in choices
+        assert ("c", "Updated C") in choices

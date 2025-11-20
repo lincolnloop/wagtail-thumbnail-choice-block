@@ -134,7 +134,7 @@ The widget includes default CSS that can be customized by overriding these class
 
 ## Requirements
 
-- Python >= 3.8
+- Python >= 3.10
 - Django >= 4.2
 - Wagtail >= 5.0
 

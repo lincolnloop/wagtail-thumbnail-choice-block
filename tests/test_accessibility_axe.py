@@ -84,6 +84,7 @@ class TestAccessibilityWithAxe(LiveServerTestCase):
         # Load the actual CSS file from the package
         css_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
+            "wagtail_thumbnail_choice_block",
             "static",
             "wagtail_thumbnail_choice_block",
             "css",

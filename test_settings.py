@@ -50,6 +50,7 @@ MIDDLEWARE = [
 ]
 
 STATIC_URL = "/static/"
+STATICFILES_DIRS = []
 ROOT_URLCONF = ""
 
 # Wagtail settings

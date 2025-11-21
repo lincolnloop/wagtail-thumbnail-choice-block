@@ -83,12 +83,66 @@ class ContentBlock(blocks.StructBlock):
     )
 ```
 
+### Static Or Dynamic Thumbnail Templates
+
+Sometimes, it may be preferable to use a template file for thumbnails. For example, if you are using sprites and do not have a separate file for each thumbnail, but are using a single HTML template for your thumbnails, you may define `thumbnail_templates` and pass relevant context for each thumbnail. You may do so statically
+
+```python
+from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+
+class MySettings(blocks.StructBlock):
+    icon = ThumbnailChoiceBlock(
+        choices=[
+            ('star', 'Star'),
+            ('check', 'Check'),
+        ],
+        thumbnail_templates={
+            'star': {
+                'template': 'components/icon.html',
+                'context': {'icon_name': 'star', 'extra_class': 'thumbnail-icon'}
+            },
+            'check': {
+                'template': 'components/icon.html',
+                'context': {'icon_name': 'check', 'extra_class': 'thumbnail-icon'}
+            },
+        }
+    )
+```
+
+or dynamically
+
+```python
+from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+
+def get_thumbnail_choices() -> list[tuple[str, str]]:
+    return [
+        (icon_name, icon_name.capitalize())
+        for icon_name in ["star", "check"]
+    ]
+
+def get_thumbnail_templates() -> dict[str, str]:
+    return {
+        icon_name: {
+            'template': 'components/icon.html',
+            'context': {'icon_name': icon_name, 'extra_class': 'thumbnail-icon'}
+        }
+        for icon_name in ["star", "check"]
+    }
+
+class MySettings(blocks.StructBlock):
+    icon = ThumbnailChoiceBlock(
+        choices=get_thumbnail_choices,
+        thumbnail_templates=get_thumbnail_templates
+    )
+```
+
 **Important Notes:**
 
 - Callables are evaluated at render time, so choices will always reflect the current database state
 - Callables should be efficient as they may be called multiple times during form rendering
 - Consider caching if your callable performs expensive database queries
 - Callables should handle cases where data might not exist (e.g., missing images)
+- If you are using `thumbnail_templates`, the Wagtail interface may not be set up to load all of the CSS files that your regular pages load, so using an icon template may lead to an empty icon in Wagtail. In this case, you will need to update the CSS that is loaded in Wagtail to include the necessary CSS styles. For example, an HTML template like `<span class="icon icon-android"></span>` will need to use the `icon` and `icon-android` CSS classes. Make sure that the CSS rules for those classes are being loaded in Wagtail.
 
 ## API
 

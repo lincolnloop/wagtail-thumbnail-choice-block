@@ -2,6 +2,8 @@
 Tests for ThumbnailRadioSelect widget.
 """
 
+from unittest.mock import patch
+
 from django.test import TestCase
 
 from wagtail_thumbnail_choice_block.widgets import ThumbnailRadioSelect
@@ -99,3 +101,203 @@ class TestThumbnailRadioSelect(TestCase):
             widget.template_name
             == "wagtail_thumbnail_choice_block/widgets/thumbnail_radio_select.html"
         )
+
+    def test_widget_initialization_with_thumbnail_templates(self):
+        """Test that widget initializes correctly with thumbnail templates."""
+        widget = ThumbnailRadioSelect(
+            choices=[("star", "Star"), ("check", "Check")],
+            thumbnail_template_mapping={
+                "star": "components/star.html",
+                "check": {
+                    "template": "components/check.html",
+                    "context": {"icon": "check"},
+                },
+            },
+        )
+
+        assert widget.thumbnail_template_mapping == {
+            "star": "components/star.html",
+            "check": {
+                "template": "components/check.html",
+                "context": {"icon": "check"},
+            },
+        }
+        assert list(widget.choices) == [("star", "Star"), ("check", "Check")]
+
+    def test_widget_initialization_without_thumbnail_templates(self):
+        """Test that widget works without thumbnail template mapping."""
+        widget = ThumbnailRadioSelect(choices=[("a", "Option A"), ("b", "Option B")])
+
+        assert widget.thumbnail_template_mapping == {}
+        assert list(widget.choices) == [("a", "Option A"), ("b", "Option B")]
+
+    def test_create_option_adds_thumbnail_template_html_empty(self):
+        """Test that create_option adds empty thumbnail_template_html when no template."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")], thumbnail_template_mapping={}
+        )
+
+        option = widget.create_option("test", "a", "Option A", True, 0)
+
+        assert option["thumbnail_template_html"] == ""
+        assert option["value"] == "a"
+        assert option["label"] == "Option A"
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_widget_renders_html_with_thumbnail_template_mapping_string(
+        self, mock_render
+    ):
+        """Test that widget renders HTML with template path (string)."""
+        # Mock render_to_string to return specific HTML
+        mock_template_value = '<span class="icon-star">★</span>'
+        mock_render.return_value = mock_template_value
+
+        widget = ThumbnailRadioSelect(
+            choices=[("star", "Star")],
+            thumbnail_template_mapping={"star": "components/star.html"},
+        )
+
+        html = widget.render("test_field", "star", attrs={"id": "test-id"})
+
+        # Verify render_to_string was called with correct arguments
+        mock_render.assert_called_once_with(
+            "components/star.html", {"value": "star", "label": "Star"}
+        )
+
+        # Verify the rendered HTML contains the mock_template_value.
+        expected_html = f"""
+            <div id="test-id" class="thumbnail-radio-select">
+                <label for="test-id_0" class="thumbnail-radio-option selected">
+                    <input type="radio" name="test_field" value="star" id="test-id_0" checked>
+                    <span class="thumbnail-wrapper">
+                        {mock_template_value}
+                    </span>
+                    <span class="thumbnail-label">Star</span>
+                </label>
+            </div>
+        """
+        assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
+            " ", ""
+        ).replace("\n", "")
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_widget_renders_html_with_thumbnail_template_mapping_dict(
+        self, mock_render
+    ):
+        """Test that widget renders HTML with template dict (template + context)."""
+        # Mock render_to_string to return specific HTML
+        mock_template_value = '<span class="icon-check custom">✓</span>'
+        mock_render.return_value = mock_template_value
+
+        widget = ThumbnailRadioSelect(
+            choices=[("check", "Check")],
+            thumbnail_template_mapping={
+                "check": {
+                    "template": "components/check.html",
+                    "context": {"icon": "check", "custom_class": "custom"},
+                },
+            },
+        )
+
+        html = widget.render("test_field", "check", attrs={"id": "test-id"})
+
+        # Verify render_to_string was called with correct arguments
+        # The context should include both the provided context and default value/label
+        expected_context = {
+            "icon": "check",
+            "custom_class": "custom",
+            "value": "check",
+            "label": "Check",
+        }
+        mock_render.assert_called_once_with("components/check.html", expected_context)
+
+        # Verify the rendered HTML contains the mock_template_value.
+        expected_html = f"""
+            <div id="test-id" class="thumbnail-radio-select">
+                <label for="test-id_0" class="thumbnail-radio-option selected">
+                    <input type="radio" name="test_field" value="check" id="test-id_0" checked>
+                    <span class="thumbnail-wrapper">
+                        {mock_template_value}
+                    </span>
+                    <span class="thumbnail-label">Check</span>
+                </label>
+            </div>
+        """
+        assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
+            " ", ""
+        ).replace("\n", "")
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_widget_template_takes_precedence_over_thumbnail(self, mock_render):
+        """Test that template HTML takes precedence over thumbnail URL."""
+        # Mock render_to_string to return specific HTML
+        mock_render.return_value = '<span class="template-icon">T</span>'
+
+        widget = ThumbnailRadioSelect(
+            choices=[("option", "Option")],
+            thumbnail_mapping={"option": "/test/image.png"},
+            thumbnail_template_mapping={"option": "components/icon.html"},
+        )
+
+        html = widget.render("test_field", "option", attrs={"id": "test-id"})
+
+        # Template should be used, not the image
+        assert '<span class="template-icon">T</span>' in html
+        # Image should not appear since template takes precedence
+        assert "/test/image.png" not in html
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_create_option_with_template_rendering(self, mock_render):
+        """Test that create_option properly renders templates for options."""
+        # Mock render_to_string to return specific HTML
+        mock_render.return_value = '<i class="icon-star"></i>'
+
+        widget = ThumbnailRadioSelect(
+            choices=[("star", "Star")],
+            thumbnail_template_mapping={"star": "components/star.html"},
+        )
+
+        option = widget.create_option("test", "star", "Star", False, 0)
+
+        # Verify the option has the rendered template HTML
+        assert option["thumbnail_template_html"] == '<i class="icon-star"></i>'
+        assert option["thumbnail_url"] == ""
+
+        # Verify render_to_string was called
+        mock_render.assert_called_once_with(
+            "components/star.html", {"value": "star", "label": "Star"}
+        )
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_create_option_handles_template_error_gracefully(self, mock_render):
+        """If a template is not found, an empty value is rendered for the thumbnail."""
+        # Mock render_to_string to raise an exception
+        mock_render.side_effect = Exception("Template not found")
+
+        widget = ThumbnailRadioSelect(
+            choices=[("star", "Star")],
+            thumbnail_template_mapping={"star": "components/missing.html"},
+        )
+
+        option = widget.create_option("test", "star", "Star", False, 0)
+
+        # Should gracefully handle the error and return empty string
+        assert option["thumbnail_template_html"] == ""
+        assert option["thumbnail_url"] == ""
+        html = widget.render("test_field", "option", attrs={"id": "test-id"})
+        # Verify the rendered HTML contains the placeholder value (this is
+        # <span class="thumbnail-placeholder"></span>).
+        expected_html = """
+            <div id="test-id" class="thumbnail-radio-select">
+                <label for="test-id_0" class="thumbnail-radio-option">
+                    <input type="radio" name="test_field" value="star" id="test-id_0">
+                    <span class="thumbnail-wrapper">
+                        <span class="thumbnail-placeholder"></span>
+                    </span>
+                    <span class="thumbnail-label">Star</span>
+                </label>
+            </div>
+        """
+        assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
+            " ", ""
+        ).replace("\n", "")

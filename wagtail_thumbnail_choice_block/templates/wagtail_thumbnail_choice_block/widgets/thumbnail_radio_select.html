@@ -8,7 +8,9 @@
     <label{% if option.attrs.id %} for="{{ option.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if option.attrs.checked %} selected{% endif %}">
       <input type="{{ option.type }}" name="{{ option.name }}"{% if option.value != None %} value="{{ option.value }}"{% endif %}{% for name, value in option.attrs.items %} {{ name }}{% if value != True %}="{{ value }}"{% endif %}{% endfor %}>
       <span class="thumbnail-wrapper">
-        {% if option.thumbnail_url %}
+        {% if option.thumbnail_template_html %}
+          {{ option.thumbnail_template_html|safe }}
+        {% elif option.thumbnail_url %}
           <img src="{{ option.thumbnail_url }}" alt="{{ option.label }}" class="thumbnail-image">
         {% else %}
           <span class="thumbnail-placeholder"></span>

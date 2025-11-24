@@ -91,27 +91,34 @@ class TestThumbnailChoiceBlock(TestCase):
 
         expected_html = """
             <div class="thumbnail-radio-select">
-                <label class="thumbnail-radio-option">
-                    <input type="radio" name="test_field" value="">
-                    <span class="thumbnail-wrapper">
-                        <span class="thumbnail-placeholder"></span>
-                    </span>
-                    <span class="thumbnail-label">---------</span>
-                </label>
-                <label class="thumbnail-radio-option selected">
-                    <input type="radio" name="test_field" value="a" checked>
-                    <span class="thumbnail-wrapper">
-                        <img src="/test/a.png" alt="Option A" class="thumbnail-image">
-                    </span>
-                    <span class="thumbnail-label">Option A</span>
-                </label>
-                <label class="thumbnail-radio-option">
-                    <input type="radio" name="test_field" value="b">
-                    <span class="thumbnail-wrapper">
-                        <img src="/test/b.png" alt="Option B" class="thumbnail-image">
-                    </span>
-                    <span class="thumbnail-label">Option B</span>
-                </label>
+                <div class="thumbnail-filter-wrapper">
+                    <div class="thumbnail-selected-preview"></div>
+                    <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
+                </div>
+                <div class="thumbnail-dropdown">
+                    <label class="thumbnail-radio-option" data-label="---------">
+                        <input type="radio" name="test_field" value="">
+                        <span class="thumbnail-wrapper">
+                            <span class="thumbnail-placeholder"></span>
+                        </span>
+                        <span class="thumbnail-label">---------</span>
+                    </label>
+                    <label class="thumbnail-radio-option selected" data-label="option a">
+                        <input type="radio" name="test_field" value="a" checked>
+                        <span class="thumbnail-wrapper">
+                            <img src="/test/a.png" alt="Option A" class="thumbnail-image">
+                        </span>
+                        <span class="thumbnail-label">Option A</span>
+                    </label>
+                    <label class="thumbnail-radio-option" data-label="option b">
+                        <input type="radio" name="test_field" value="b">
+                        <span class="thumbnail-wrapper">
+                            <img src="/test/b.png" alt="Option B" class="thumbnail-image">
+                        </span>
+                        <span class="thumbnail-label">Option B</span>
+                    </label>
+                    <div class="thumbnail-no-results" style="display: none;">No matching options found.</div>
+                </div>
             </div>
         """
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(

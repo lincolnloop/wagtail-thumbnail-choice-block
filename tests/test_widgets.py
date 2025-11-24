@@ -60,20 +60,27 @@ class TestThumbnailRadioSelect(TestCase):
 
         expected_html = """
             <div id="test-id" class="thumbnail-radio-select">
-                <label for="test-id_0" class="thumbnail-radio-option selected">
-                    <input type="radio" name="test_field" value="a" id="test-id_0" checked>
-                    <span class="thumbnail-wrapper">
-                        <img src="/test/a.png" alt="Option A" class="thumbnail-image">
-                    </span>
-                    <span class="thumbnail-label">Option A</span>
-                </label>
-                <label for="test-id_1" class="thumbnail-radio-option">
-                    <input type="radio" name="test_field" value="b" id="test-id_1">
-                    <span class="thumbnail-wrapper">
-                        <img src="/test/b.png" alt="Option B" class="thumbnail-image">
-                    </span>
-                    <span class="thumbnail-label">Option B</span>
-                </label>
+                <div class="thumbnail-filter-wrapper">
+                    <div class="thumbnail-selected-preview"></div>
+                    <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
+                </div>
+                <div class="thumbnail-dropdown">
+                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="option a">
+                        <input type="radio" name="test_field" value="a" id="test-id_0" checked>
+                        <span class="thumbnail-wrapper">
+                            <img src="/test/a.png" alt="Option A" class="thumbnail-image">
+                        </span>
+                        <span class="thumbnail-label">Option A</span>
+                    </label>
+                    <label for="test-id_1" class="thumbnail-radio-option" data-label="option b">
+                        <input type="radio" name="test_field" value="b" id="test-id_1">
+                        <span class="thumbnail-wrapper">
+                            <img src="/test/b.png" alt="Option B" class="thumbnail-image">
+                        </span>
+                        <span class="thumbnail-label">Option B</span>
+                    </label>
+                    <div class="thumbnail-no-results" style="display: none;">No matching options found.</div>
+                </div>
             </div>
         """
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
@@ -92,6 +99,9 @@ class TestThumbnailRadioSelect(TestCase):
         # Option B should be checked
         assert "checked" in html
         assert "selected" in html  # CSS class
+        # Verify dropdown structure is present
+        assert "thumbnail-dropdown" in html
+        assert "thumbnail-filter-input" in html
 
     def test_widget_template_name(self):
         """Test that widget uses correct template."""
@@ -167,13 +177,20 @@ class TestThumbnailRadioSelect(TestCase):
         # Verify the rendered HTML contains the mock_template_value.
         expected_html = f"""
             <div id="test-id" class="thumbnail-radio-select">
-                <label for="test-id_0" class="thumbnail-radio-option selected">
-                    <input type="radio" name="test_field" value="star" id="test-id_0" checked>
-                    <span class="thumbnail-wrapper">
-                        {mock_template_value}
-                    </span>
-                    <span class="thumbnail-label">Star</span>
-                </label>
+                <div class="thumbnail-filter-wrapper">
+                    <div class="thumbnail-selected-preview"></div>
+                    <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
+                </div>
+                <div class="thumbnail-dropdown">
+                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="star">
+                        <input type="radio" name="test_field" value="star" id="test-id_0" checked>
+                        <span class="thumbnail-wrapper">
+                            {mock_template_value}
+                        </span>
+                        <span class="thumbnail-label">Star</span>
+                    </label>
+                    <div class="thumbnail-no-results" style="display: none;">No matching options found.</div>
+                </div>
             </div>
         """
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
@@ -214,13 +231,20 @@ class TestThumbnailRadioSelect(TestCase):
         # Verify the rendered HTML contains the mock_template_value.
         expected_html = f"""
             <div id="test-id" class="thumbnail-radio-select">
-                <label for="test-id_0" class="thumbnail-radio-option selected">
-                    <input type="radio" name="test_field" value="check" id="test-id_0" checked>
-                    <span class="thumbnail-wrapper">
-                        {mock_template_value}
-                    </span>
-                    <span class="thumbnail-label">Check</span>
-                </label>
+                <div class="thumbnail-filter-wrapper">
+                    <div class="thumbnail-selected-preview"></div>
+                    <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
+                </div>
+                <div class="thumbnail-dropdown">
+                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="check">
+                        <input type="radio" name="test_field" value="check" id="test-id_0" checked>
+                        <span class="thumbnail-wrapper">
+                            {mock_template_value}
+                        </span>
+                        <span class="thumbnail-label">Check</span>
+                    </label>
+                    <div class="thumbnail-no-results" style="display: none;">No matching options found.</div>
+                </div>
             </div>
         """
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
@@ -289,13 +313,20 @@ class TestThumbnailRadioSelect(TestCase):
         # <span class="thumbnail-placeholder"></span>).
         expected_html = """
             <div id="test-id" class="thumbnail-radio-select">
-                <label for="test-id_0" class="thumbnail-radio-option">
-                    <input type="radio" name="test_field" value="star" id="test-id_0">
-                    <span class="thumbnail-wrapper">
-                        <span class="thumbnail-placeholder"></span>
-                    </span>
-                    <span class="thumbnail-label">Star</span>
-                </label>
+                <div class="thumbnail-filter-wrapper">
+                    <div class="thumbnail-selected-preview"></div>
+                    <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
+                </div>
+                <div class="thumbnail-dropdown">
+                    <label for="test-id_0" class="thumbnail-radio-option" data-label="star">
+                        <input type="radio" name="test_field" value="star" id="test-id_0">
+                        <span class="thumbnail-wrapper">
+                            <span class="thumbnail-placeholder"></span>
+                        </span>
+                        <span class="thumbnail-label">Star</span>
+                    </label>
+                    <div class="thumbnail-no-results" style="display: none;">No matching options found.</div>
+                </div>
             </div>
         """
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(

@@ -1,11 +1,16 @@
 <div{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}{% if widget.attrs.class %} class="thumbnail-radio-select {{ widget.attrs.class }}"{% else %} class="thumbnail-radio-select"{% endif %}>
+  <div class="thumbnail-filter-wrapper">
+    <div class="thumbnail-selected-preview"></div>
+    <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
+  </div>
+  <div class="thumbnail-dropdown">
 {% for group, options, index in widget.optgroups %}
   {% if group %}
     <div class="thumbnail-radio-group">
       {% if label %}<span class="thumbnail-radio-group-label">{{ label }}</span>{% endif %}
   {% endif %}
   {% for option in options %}
-    <label{% if option.attrs.id %} for="{{ option.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if option.attrs.checked %} selected{% endif %}">
+    <label{% if option.attrs.id %} for="{{ option.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if option.attrs.checked %} selected{% endif %}" data-label="{{ option.label|lower }}">
       <input type="{{ option.type }}" name="{{ option.name }}"{% if option.value != None %} value="{{ option.value }}"{% endif %}{% for name, value in option.attrs.items %} {{ name }}{% if value != True %}="{{ value }}"{% endif %}{% endfor %}>
       <span class="thumbnail-wrapper">
         {% if option.thumbnail_template_html %}
@@ -21,4 +26,6 @@
   {% endfor %}
   {% if group %}</div>{% endif %}
 {% endfor %}
+    <div class="thumbnail-no-results" style="display: none;">No matching options found.</div>
+  </div>
 </div>

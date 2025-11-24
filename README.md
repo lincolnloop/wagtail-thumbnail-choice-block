@@ -50,6 +50,35 @@ class BannerSettings(blocks.StructBlock):
     )
 ```
 
+### Customizing Thumbnail Size
+
+You can customize the size of thumbnails in the dropdown by passing the `thumbnail_size` parameter (in pixels). The default is 40px.
+
+```python
+class BannerSettings(blocks.StructBlock):
+    # Small thumbnails (24px)
+    small_icon = ThumbnailChoiceBlock(
+        choices=ICON_CHOICES,
+        thumbnails=ICON_THUMBNAILS,
+        thumbnail_size=24,
+    )
+
+    # Default size (40px)
+    medium_icon = ThumbnailChoiceBlock(
+        choices=ICON_CHOICES,
+        thumbnails=ICON_THUMBNAILS,
+    )
+
+    # Large thumbnails (80px)
+    large_theme = ThumbnailChoiceBlock(
+        choices=THEME_CHOICES,
+        thumbnails=THEME_THUMBNAILS,
+        thumbnail_size=80,
+    )
+```
+
+**Note:** While the thumbnails in the dropdown appear in the size configured by the user, the preview thumbnail shown in the input field is automatically sized proportionally and constrained between 20px and 32px, to ensure it fits nicely within the input.
+
 ### Dynamic Choices with Callables
 
 Both `choices` and `thumbnails` can be callables (functions) that return the data. This is useful when you need to generate choices dynamically from the database or other runtime sources.
@@ -154,6 +183,7 @@ Extends Wagtail's `ChoiceBlock` with thumbnail support.
 
 - `choices` (required): List of (value, label) tuples for the choice options
 - `thumbnails` (required): Dictionary mapping choice values to thumbnail image URLs/paths
+- `thumbnail_size`: Size of thumbnails in pixels (default: 40). The preview thumbnail in the input is automatically scaled proportionally (60%) and constrained between 20-32px
 - `default`: Default selected value
 - `**kwargs`: Any additional arguments supported by Wagtail's ChoiceBlock
 
@@ -166,6 +196,7 @@ The underlying Django widget. Can be used directly in Django forms.
 - `attrs`: HTML attributes for the widget
 - `choices`: Available choices for the radio select
 - `thumbnail_mapping`: Dictionary mapping choice values to thumbnail URLs/paths
+- `thumbnail_size`: Size of thumbnails in pixels (default: 40)
 
 ## Thumbnail Images
 

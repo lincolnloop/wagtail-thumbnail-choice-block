@@ -1,4 +1,4 @@
-<div{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}{% if widget.attrs.class %} class="thumbnail-radio-select {{ widget.attrs.class }}"{% else %} class="thumbnail-radio-select"{% endif %}>
+<div{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}{% if widget.attrs.class %} class="thumbnail-radio-select {{ widget.attrs.class }}"{% else %} class="thumbnail-radio-select"{% endif %} style="--thumbnail-size: {{ widget.thumbnail_size }}px;">
   <div class="thumbnail-filter-wrapper">
     <div class="thumbnail-selected-preview"></div>
     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>

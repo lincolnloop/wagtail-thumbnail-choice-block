@@ -17,14 +17,18 @@ class TestThumbnailRadioSelect(TestCase):
         widget = ThumbnailRadioSelect(
             choices=[("a", "Option A"), ("b", "Option B")],
             thumbnail_mapping={"a": "/test/a.png", "b": "/test/b.png"},
+            thumbnail_size=40,
         )
 
         assert widget.thumbnail_mapping == {"a": "/test/a.png", "b": "/test/b.png"}
         assert list(widget.choices) == [("a", "Option A"), ("b", "Option B")]
+        assert widget.thumbnail_size == 40
 
     def test_widget_initialization_without_thumbnails(self):
         """Test that widget works without thumbnail mapping."""
-        widget = ThumbnailRadioSelect(choices=[("a", "Option A"), ("b", "Option B")])
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A"), ("b", "Option B")], thumbnail_size=40
+        )
 
         assert widget.thumbnail_mapping == {}
         assert list(widget.choices) == [("a", "Option A"), ("b", "Option B")]
@@ -32,7 +36,9 @@ class TestThumbnailRadioSelect(TestCase):
     def test_create_option_adds_thumbnail_url(self):
         """Test that create_option adds thumbnail_url to option context."""
         widget = ThumbnailRadioSelect(
-            choices=[("a", "Option A")], thumbnail_mapping={"a": "/test/a.png"}
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": "/test/a.png"},
+            thumbnail_size=40,
         )
 
         option = widget.create_option("test", "a", "Option A", True, 0)
@@ -43,7 +49,9 @@ class TestThumbnailRadioSelect(TestCase):
 
     def test_create_option_handles_missing_thumbnail(self):
         """Test that create_option handles missing thumbnails gracefully."""
-        widget = ThumbnailRadioSelect(choices=[("a", "Option A")], thumbnail_mapping={})
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")], thumbnail_mapping={}, thumbnail_size=40
+        )
 
         option = widget.create_option("test", "a", "Option A", True, 0)
 
@@ -54,12 +62,13 @@ class TestThumbnailRadioSelect(TestCase):
         widget = ThumbnailRadioSelect(
             choices=[("a", "Option A"), ("b", "Option B")],
             thumbnail_mapping={"a": "/test/a.png", "b": "/test/b.png"},
+            thumbnail_size=40,
         )
 
         html = widget.render("test_field", "a", attrs={"id": "test-id"})
 
         expected_html = """
-            <div id="test-id" class="thumbnail-radio-select">
+            <div id="test-id" class="thumbnail-radio-select" style="--thumbnail-size: 40px;">
                 <div class="thumbnail-filter-wrapper">
                     <div class="thumbnail-selected-preview"></div>
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
@@ -92,6 +101,7 @@ class TestThumbnailRadioSelect(TestCase):
         widget = ThumbnailRadioSelect(
             choices=[("a", "Option A"), ("b", "Option B")],
             thumbnail_mapping={"a": "/test/a.png", "b": "/test/b.png"},
+            thumbnail_size=40,
         )
 
         html = widget.render("test_field", "b", attrs={"id": "test-id"})
@@ -105,12 +115,59 @@ class TestThumbnailRadioSelect(TestCase):
 
     def test_widget_template_name(self):
         """Test that widget uses correct template."""
-        widget = ThumbnailRadioSelect()
+        widget = ThumbnailRadioSelect(thumbnail_size=40)
 
         assert (
             widget.template_name
             == "wagtail_thumbnail_choice_block/widgets/thumbnail_radio_select.html"
         )
+
+    def test_widget_requires_thumbnail_size(self):
+        """Test that widget raises ValueError when thumbnail_size is not provided."""
+        with self.assertRaises(ValueError) as context:
+            ThumbnailRadioSelect(
+                choices=[("a", "Option A"), ("b", "Option B")],
+                thumbnail_mapping={"a": "/test/a.png", "b": "/test/b.png"},
+                # No thumbnail_size provided
+            )
+
+        assert "thumbnail_size is required" in str(context.exception)
+
+    def test_widget_initialization_with_custom_thumbnail_size(self):
+        """Test that widget initializes with custom thumbnail size."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnail_mapping={"a": "/test/a.png", "b": "/test/b.png"},
+            thumbnail_size=60,
+        )
+
+        assert widget.thumbnail_size == 60
+
+    def test_widget_get_context_includes_thumbnail_size(self):
+        """Test that get_context adds thumbnail_size to the context."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": "/test/a.png"},
+            thumbnail_size=50,
+        )
+
+        context = widget.get_context("test_field", "a", attrs={"id": "test-id"})
+
+        assert "widget" in context
+        assert context["widget"]["thumbnail_size"] == 50
+
+    def test_widget_renders_with_css_variable(self):
+        """Test that widget renders with CSS variable for thumbnail size."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": "/test/a.png"},
+            thumbnail_size=80,
+        )
+
+        html = widget.render("test_field", "a", attrs={"id": "test-id"})
+
+        # Verify the CSS variable is present in the rendered HTML
+        assert 'style="--thumbnail-size: 80px;"' in html
 
     def test_widget_initialization_with_thumbnail_templates(self):
         """Test that widget initializes correctly with thumbnail templates."""
@@ -123,6 +180,7 @@ class TestThumbnailRadioSelect(TestCase):
                     "context": {"icon": "check"},
                 },
             },
+            thumbnail_size=40,
         )
 
         assert widget.thumbnail_template_mapping == {
@@ -136,7 +194,9 @@ class TestThumbnailRadioSelect(TestCase):
 
     def test_widget_initialization_without_thumbnail_templates(self):
         """Test that widget works without thumbnail template mapping."""
-        widget = ThumbnailRadioSelect(choices=[("a", "Option A"), ("b", "Option B")])
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A"), ("b", "Option B")], thumbnail_size=40
+        )
 
         assert widget.thumbnail_template_mapping == {}
         assert list(widget.choices) == [("a", "Option A"), ("b", "Option B")]
@@ -144,7 +204,9 @@ class TestThumbnailRadioSelect(TestCase):
     def test_create_option_adds_thumbnail_template_html_empty(self):
         """Test that create_option adds empty thumbnail_template_html when no template."""
         widget = ThumbnailRadioSelect(
-            choices=[("a", "Option A")], thumbnail_template_mapping={}
+            choices=[("a", "Option A")],
+            thumbnail_template_mapping={},
+            thumbnail_size=40,
         )
 
         option = widget.create_option("test", "a", "Option A", True, 0)
@@ -165,6 +227,7 @@ class TestThumbnailRadioSelect(TestCase):
         widget = ThumbnailRadioSelect(
             choices=[("star", "Star")],
             thumbnail_template_mapping={"star": "components/star.html"},
+            thumbnail_size=100,
         )
 
         html = widget.render("test_field", "star", attrs={"id": "test-id"})
@@ -176,7 +239,7 @@ class TestThumbnailRadioSelect(TestCase):
 
         # Verify the rendered HTML contains the mock_template_value.
         expected_html = f"""
-            <div id="test-id" class="thumbnail-radio-select">
+            <div id="test-id" class="thumbnail-radio-select" style="--thumbnail-size: 100px;">
                 <div class="thumbnail-filter-wrapper">
                     <div class="thumbnail-selected-preview"></div>
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
@@ -214,6 +277,7 @@ class TestThumbnailRadioSelect(TestCase):
                     "context": {"icon": "check", "custom_class": "custom"},
                 },
             },
+            thumbnail_size=20,
         )
 
         html = widget.render("test_field", "check", attrs={"id": "test-id"})
@@ -230,7 +294,7 @@ class TestThumbnailRadioSelect(TestCase):
 
         # Verify the rendered HTML contains the mock_template_value.
         expected_html = f"""
-            <div id="test-id" class="thumbnail-radio-select">
+            <div id="test-id" class="thumbnail-radio-select" style="--thumbnail-size: 20px;">
                 <div class="thumbnail-filter-wrapper">
                     <div class="thumbnail-selected-preview"></div>
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
@@ -261,6 +325,7 @@ class TestThumbnailRadioSelect(TestCase):
             choices=[("option", "Option")],
             thumbnail_mapping={"option": "/test/image.png"},
             thumbnail_template_mapping={"option": "components/icon.html"},
+            thumbnail_size=40,
         )
 
         html = widget.render("test_field", "option", attrs={"id": "test-id"})
@@ -279,6 +344,7 @@ class TestThumbnailRadioSelect(TestCase):
         widget = ThumbnailRadioSelect(
             choices=[("star", "Star")],
             thumbnail_template_mapping={"star": "components/star.html"},
+            thumbnail_size=40,
         )
 
         option = widget.create_option("test", "star", "Star", False, 0)
@@ -301,6 +367,7 @@ class TestThumbnailRadioSelect(TestCase):
         widget = ThumbnailRadioSelect(
             choices=[("star", "Star")],
             thumbnail_template_mapping={"star": "components/missing.html"},
+            thumbnail_size=50,
         )
 
         option = widget.create_option("test", "star", "Star", False, 0)
@@ -312,7 +379,7 @@ class TestThumbnailRadioSelect(TestCase):
         # Verify the rendered HTML contains the placeholder value (this is
         # <span class="thumbnail-placeholder"></span>).
         expected_html = """
-            <div id="test-id" class="thumbnail-radio-select">
+            <div id="test-id" class="thumbnail-radio-select" style="--thumbnail-size: 50px;">
                 <div class="thumbnail-filter-wrapper">
                     <div class="thumbnail-selected-preview"></div>
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>

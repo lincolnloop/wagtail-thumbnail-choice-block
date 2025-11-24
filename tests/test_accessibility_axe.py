@@ -101,6 +101,7 @@ class TestAccessibilityWithAxe(LiveServerTestCase):
                 "a": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="red"/></svg>',
                 "b": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="blue"/></svg>',
             },
+            thumbnail_size=40,
         )
 
         page_html = self._render_widget_page(widget, value="a")
@@ -141,6 +142,7 @@ class TestAccessibilityWithAxe(LiveServerTestCase):
                 "light": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="white" stroke="black"/></svg>',
                 "dark": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="black"/></svg>',
             },
+            thumbnail_size=40,
         )
 
         page_html = self._render_widget_page(widget, value="light")
@@ -175,6 +177,7 @@ class TestAccessibilityWithAxe(LiveServerTestCase):
                 "b": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="green"/></svg>',
                 "c": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="blue"/></svg>',
             },
+            thumbnail_size=40,
         )
 
         page_html = self._render_widget_page(widget, value="a")
@@ -197,6 +200,7 @@ class TestAccessibilityWithAxe(LiveServerTestCase):
                 "a": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="red"/></svg>',
                 "b": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="blue"/></svg>',
             },
+            thumbnail_size=40,
         )
 
         page_html = self._render_widget_page(widget, value="a")
@@ -223,6 +227,7 @@ class TestAccessibilityWithAxe(LiveServerTestCase):
                 "a": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="white" stroke="black"/></svg>',
                 "b": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><rect fill="black"/></svg>',
             },
+            thumbnail_size=40,
         )
 
         page_html = self._render_widget_page(widget, value="a")

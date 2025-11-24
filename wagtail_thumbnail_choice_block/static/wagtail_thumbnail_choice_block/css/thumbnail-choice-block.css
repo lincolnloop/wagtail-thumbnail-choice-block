@@ -20,8 +20,8 @@
   left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
+  width: clamp(20px, calc(var(--thumbnail-size, 40px) * 0.6), 32px);
+  height: clamp(20px, calc(var(--thumbnail-size, 40px) * 0.6), 32px);
   display: none;
   align-items: center;
   justify-content: center;
@@ -65,7 +65,7 @@
 }
 
 .thumbnail-filter-input.has-thumbnail {
-  padding-left: 40px;
+  padding-left: calc(clamp(20px, calc(var(--thumbnail-size, 40px) * 0.6), 32px) + 16px);
 }
 
 .thumbnail-filter-input:focus {
@@ -146,8 +146,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: var(--thumbnail-size, 40px);
+  height: var(--thumbnail-size, 40px);
   border-radius: 4px;
   overflow: hidden;
   flex-shrink: 0;
@@ -162,8 +162,8 @@
 
 .thumbnail-placeholder {
   display: block;
-  width: 40px;
-  height: 40px;
+  width: var(--thumbnail-size, 40px);
+  height: var(--thumbnail-size, 40px);
   background: #f5f5f5;
   border-radius: 4px;
 }

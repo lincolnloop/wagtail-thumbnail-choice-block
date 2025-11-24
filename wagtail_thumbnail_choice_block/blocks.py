@@ -129,12 +129,18 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
     """
 
     def __init__(
-        self, choices=None, thumbnails=None, thumbnail_templates=None, **kwargs
+        self,
+        choices=None,
+        thumbnails=None,
+        thumbnail_templates=None,
+        thumbnail_size=40,
+        **kwargs,
     ):
         # Store the original choices, thumbnails, and thumbnail_templates (may be callable)
         self._choices_source = choices
         self._thumbnails_source = thumbnails
         self._thumbnail_templates_source = thumbnail_templates
+        self._thumbnail_size = thumbnail_size
 
         # For initialization, we need to resolve callables to get actual choices
         # This is needed for the parent ChoiceBlock's validation
@@ -199,6 +205,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         widget = ThumbnailRadioSelect(
             thumbnail_mapping=resolved_thumbnails,
             thumbnail_template_mapping=resolved_thumbnail_templates,
+            thumbnail_size=self._thumbnail_size,
         )
 
         # Pass the widget to parent's get_field

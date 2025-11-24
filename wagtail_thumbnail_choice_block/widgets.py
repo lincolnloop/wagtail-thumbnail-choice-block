@@ -51,10 +51,23 @@ class ThumbnailRadioSelect(RadioSelect):
         choices=(),
         thumbnail_mapping=None,
         thumbnail_template_mapping=None,
+        thumbnail_size=None,
     ):
         super().__init__(attrs, choices)
         self.thumbnail_mapping = thumbnail_mapping or {}
         self.thumbnail_template_mapping = thumbnail_template_mapping or {}
+
+        if thumbnail_size is None:
+            raise ValueError(
+                "thumbnail_size is required. Please provide a thumbnail size in pixels."
+            )
+        self.thumbnail_size = thumbnail_size
+
+    def get_context(self, name, value, attrs):
+        """Override to add thumbnail_size to the template context."""
+        context = super().get_context(name, value, attrs)
+        context["widget"]["thumbnail_size"] = self.thumbnail_size
+        return context
 
     def create_option(
         self, name, value, label, selected, index, subindex=None, attrs=None

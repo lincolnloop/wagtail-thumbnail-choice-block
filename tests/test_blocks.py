@@ -19,6 +19,7 @@ class TestThumbnailChoiceBlock(TestCase):
         )
 
         assert block._thumbnails_source == {"a": "/test/a.png", "b": "/test/b.png"}
+        assert block._thumbnail_size == 40  # Default size
 
     def test_block_initialization_without_thumbnails(self):
         """Test that block works without thumbnails."""
@@ -90,7 +91,7 @@ class TestThumbnailChoiceBlock(TestCase):
         html = str(field.widget.render("test_field", "a"))
 
         expected_html = """
-            <div class="thumbnail-radio-select">
+            <div class="thumbnail-radio-select" style="--thumbnail-size: 40px;">
                 <div class="thumbnail-filter-wrapper">
                     <div class="thumbnail-selected-preview"></div>
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
@@ -315,3 +316,39 @@ class TestThumbnailChoiceBlock(TestCase):
             "a": "components/updated.html",
             "b": "components/new.html",
         }
+
+    def test_block_initialization_with_custom_thumbnail_size(self):
+        """Test that block initializes with custom thumbnail size."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            thumbnail_size=60,
+        )
+
+        assert block._thumbnail_size == 60
+
+    def test_block_widget_has_custom_thumbnail_size(self):
+        """Test that block's widget receives the custom thumbnail size."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            thumbnail_size=80,
+        )
+
+        field = block.field
+        assert isinstance(field.widget, ThumbnailRadioSelect)
+        assert field.widget.thumbnail_size == 80
+
+    def test_block_renders_with_custom_thumbnail_size(self):
+        """Test that block renders with custom thumbnail size CSS variable."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A")],
+            thumbnails={"a": "/test/a.png"},
+            thumbnail_size=100,
+        )
+
+        field = block.field
+        html = str(field.widget.render("test_field", "a"))
+
+        # Verify the CSS variable is present in the rendered HTML
+        assert 'style="--thumbnail-size: 100px;"' in html

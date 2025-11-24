@@ -181,8 +181,9 @@ Extends Wagtail's `ChoiceBlock` with thumbnail support.
 
 **Parameters:**
 
-- `choices` (required): List of (value, label) tuples for the choice options
-- `thumbnails` (required): Dictionary mapping choice values to thumbnail image URLs/paths
+- `choices` (required): List of (value, label) tuples for the choice options, or a callable that returns such a list
+- `thumbnails`: Dictionary mapping choice values to thumbnail image URLs/paths, or a callable that returns such a dictionary
+- `thumbnail_templates`: Dictionary mapping choice values to template configurations (either a template path string or a dict with 'template' and 'context' keys), or a callable that returns such a dictionary
 - `thumbnail_size`: Size of thumbnails in pixels (default: 40). The preview thumbnail in the input is automatically scaled proportionally (60%) and constrained between 20-32px
 - `default`: Default selected value
 - `**kwargs`: Any additional arguments supported by Wagtail's ChoiceBlock
@@ -196,6 +197,7 @@ The underlying Django widget. Can be used directly in Django forms.
 - `attrs`: HTML attributes for the widget
 - `choices`: Available choices for the radio select
 - `thumbnail_mapping`: Dictionary mapping choice values to thumbnail URLs/paths
+- `thumbnail_template_mapping`: Dictionary mapping choice values to template configurations
 - `thumbnail_size`: Size of thumbnails in pixels (default: 40)
 
 ## Thumbnail Images

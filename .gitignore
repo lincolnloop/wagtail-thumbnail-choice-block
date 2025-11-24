@@ -42,3 +42,8 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Example project
+.venv
+venv
+db.sqlite3

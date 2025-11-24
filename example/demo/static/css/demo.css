@@ -1,0 +1,203 @@
+/* Demo Project Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f5f5f5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px 0;
+    margin-bottom: 30px;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+h2 {
+    color: #34495e;
+    margin: 30px 0 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #3498db;
+}
+
+.content-block {
+    background: white;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.icon-display {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 18px;
+}
+
+.icon-display svg {
+    width: 40px;
+    height: 40px;
+}
+
+.color-scheme-block {
+    padding: 20px;
+    border-radius: 8px;
+    margin: 15px 0;
+    color: white;
+}
+
+/* Color scheme gradients */
+.color-scheme-blue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.color-scheme-green {
+    background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+}
+
+.color-scheme-red {
+    background: linear-gradient(135deg, #f857a6 0%, #ff5858 100%);
+}
+
+.color-scheme-purple {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
+.color-scheme-block h4 {
+    margin-bottom: 10px;
+}
+
+.button-display {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.button-solid {
+    background: #3498db;
+    color: white;
+    border: none;
+}
+
+.button-outline {
+    background: transparent;
+    color: #3498db;
+    border: 2px solid #3498db;
+}
+
+.button-ghost {
+    background: transparent;
+    color: #3498db;
+    border: none;
+}
+
+.button-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+footer {
+    margin-top: 50px;
+    padding: 20px 0;
+    text-align: center;
+    color: #7f8c8d;
+    border-top: 1px solid #ddd;
+}
+
+/* Utility classes */
+.welcome-list {
+    margin-left: 20px;
+    margin-top: 10px;
+}
+
+.style-info {
+    margin-top: 15px;
+}
+
+/* Theme-specific styles */
+body.theme-dark {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+body.theme-dark .content-block,
+body.theme-dark header {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+body.theme-dark h1,
+body.theme-dark h2 {
+    color: #ffffff;
+}
+
+/* Layout styles */
+.layout-grid .content-blocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.layout-list .content-blocks {
+    display: flex;
+    flex-direction: column;
+}
+
+.layout-masonry .content-blocks {
+    column-count: 2;
+    column-gap: 20px;
+}
+
+.layout-masonry .content-block {
+    break-inside: avoid;
+    margin-bottom: 20px;
+}
+
+/* Icon styles */
+.icon {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.icon-star {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E");
+}
+
+.icon-heart {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
+}
+
+.icon-check {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+
+.icon-info {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E");
+}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+<div class="content-blocks">
+    <div class="content-block">
+        <h2>Page Settings</h2>
+        <p><strong>Theme:</strong> {{ page.theme }}</p>
+        <p><strong>Layout:</strong> {{ page.layout }}</p>
+        <p>These settings were chosen using ThumbnailRadioSelect widgets in the Wagtail admin!</p>
+    </div>
+
+    {% for block in page.content %}
+        {% if block.block_type == 'heading' %}
+            <div class="content-block">
+                <h2>{{ block.value }}</h2>
+            </div>
+
+        {% elif block.block_type == 'paragraph' %}
+            <div class="content-block">
+                {{ block.value|richtext }}
+            </div>
+
+        {% elif block.block_type == 'icon_block' %}
+            <div class="content-block">
+                <h3>Icon Block</h3>
+                <div class="icon-display">
+                    {% include "home/icons/inline/"|add:block.value.icon|add:".html" %}
+                    <span>{{ block.value.text|default:"" }}</span>
+                </div>
+            </div>
+
+        {% elif block.block_type == 'color_scheme' %}
+            <div class="content-block">
+                <h3>Color Scheme Block</h3>
+                <div class="color-scheme-block color-scheme-{{ block.value.scheme }}">
+                    {% if block.value.title %}
+                        <h4>{{ block.value.title }}</h4>
+                    {% endif %}
+                    {% if block.value.content %}
+                        <p>{{ block.value.content }}</p>
+                    {% endif %}
+                </div>
+                <p><em>Selected scheme: {{ block.value.scheme }}</em></p>
+            </div>
+
+        {% elif block.block_type == 'button_style' %}
+            <div class="content-block">
+                <h3>Button Style Block</h3>
+                <a href="{{ block.value.url|default:'#' }}"
+                   class="button-display button-{{ block.value.style }}">
+                    {{ block.value.text }}
+                </a>
+                <p class="style-info"><em>Style: {{ block.value.style }}</em></p>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+{% if not page.content %}
+<div class="content-block">
+    <h2>Welcome!</h2>
+    <p>This is a demo of the Wagtail Thumbnail Choice Block. To see it in action:</p>
+    <ol class="welcome-list">
+        <li>Go to the Wagtail admin at <a href="/admin/">/admin/</a></li>
+        <li>Edit this page</li>
+        <li>Try changing the Theme and Layout settings</li>
+        <li>Add content blocks with various thumbnail choice options</li>
+    </ol>
+</div>
+{% endif %}
+{% endblock %}

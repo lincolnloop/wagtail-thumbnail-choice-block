@@ -225,6 +225,12 @@ The widget includes default CSS that can be customized by overriding these class
 - Django >= 4.2
 - Wagtail >= 5.0
 
+## Example Project
+
+An example Wagtail project demonstrating various uses of ThumbnailChoiceBlock is included in the repository. The example shows best practices including dynamic choices, template-based thumbnails, and different thumbnail configurations.
+
+See [example/README.md](example/README.md) for setup instructions and details.
+
 ## Development
 
 ```bash

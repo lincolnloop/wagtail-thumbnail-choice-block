@@ -291,5 +291,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Releases
 
 Releases are done with GitHub Actions whenever a new tag is created. For more information,
-see `<./.github/workflows/build.yml>`_. If adding a new tag, make sure to first update the
+see [build.yml](.github/workflows/build.yml). If adding a new tag, make sure to first update the
 version in pyproject.toml.

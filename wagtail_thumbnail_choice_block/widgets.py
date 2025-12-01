@@ -45,6 +45,12 @@ class ThumbnailRadioSelect(RadioSelect):
 
     template_name = "wagtail_thumbnail_choice_block/widgets/thumbnail_radio_select.html"
 
+    class Media:
+        css = {
+            "all": ("wagtail_thumbnail_choice_block/css/thumbnail-choice-block.css",)
+        }
+        js = ("wagtail_thumbnail_choice_block/js/thumbnail-choice-block.js",)
+
     def __init__(
         self,
         attrs=None,

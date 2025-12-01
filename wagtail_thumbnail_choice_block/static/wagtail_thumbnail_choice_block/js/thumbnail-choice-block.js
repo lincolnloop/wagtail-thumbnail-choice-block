@@ -23,6 +23,16 @@
             const noResultsMessage = container.querySelector('.thumbnail-no-results');
             const thumbnailPreview = container.querySelector('.thumbnail-selected-preview');
 
+            // Skip if no options found
+            if (options.length === 0) {
+                return;
+            }
+
+            // Ensure no results message is hidden initially
+            if (noResultsMessage) {
+                noResultsMessage.style.display = 'none';
+            }
+
             // Function to update the input display with selected option
             function updateInputDisplay() {
                 const selectedOption = container.querySelector('.thumbnail-radio-option.selected');
@@ -65,6 +75,13 @@
                     if (dropdown.classList.contains('show')) {
                         filterInput.removeAttribute('readonly');
                         filterInput.select();
+                        // Ensure all options are visible when opening
+                        options.forEach(option => {
+                            option.style.display = '';
+                        });
+                        if (noResultsMessage) {
+                            noResultsMessage.style.display = 'none';
+                        }
                     }
                 }
             }
@@ -139,6 +156,9 @@
 
                 if (!input) return;
 
+                // Ensure option is visible initially
+                option.style.display = '';
+
                 // Handle click on the label
                 option.addEventListener('click', function(e) {
                     // Update selected state on all options in this group
@@ -178,4 +198,14 @@
     document.addEventListener('wagtail:block-added', function() {
         initThumbnailChoiceBlocks();
     });
+
+    // Fallback: Initialize on first interaction with any thumbnail filter input
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('thumbnail-filter-input')) {
+            const container = e.target.closest('.thumbnail-radio-select');
+            if (container && !container.dataset.initialized) {
+                initThumbnailChoiceBlocks();
+            }
+        }
+    }, true);
 })();

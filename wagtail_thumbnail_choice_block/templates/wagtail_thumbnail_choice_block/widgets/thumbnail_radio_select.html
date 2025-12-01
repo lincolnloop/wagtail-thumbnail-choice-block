@@ -7,7 +7,7 @@
 {% for group, options, index in widget.optgroups %}
   {% if group %}
     <div class="thumbnail-radio-group">
-      {% if label %}<span class="thumbnail-radio-group-label">{{ label }}</span>{% endif %}
+      {% if group %}<span class="thumbnail-radio-group-label">{{ group }}</span>{% endif %}
   {% endif %}
   {% for option in options %}
     <label{% if option.attrs.id %} for="{{ option.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if option.attrs.checked %} selected{% endif %}" data-label="{{ option.label|lower }}">

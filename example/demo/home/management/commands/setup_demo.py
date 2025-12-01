@@ -42,6 +42,8 @@ class Command(BaseCommand):
             if not isinstance(page.specific, HomePage):
                 page.delete()
                 self.stdout.write("Removed default Wagtail home page")
+                # Refresh root_page from database after deletion
+                root_page = Page.objects.get(depth=1)
                 break
 
         # Create HomePage if it doesn't exist

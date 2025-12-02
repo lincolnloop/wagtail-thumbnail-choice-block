@@ -2,6 +2,15 @@
 
 A reusable Wagtail block that displays thumbnail images for choice fields, making it easier for content editors to visually select options.
 
+## Examples
+
+A theme field may want to display a thumbnail of each available theme:
+<img width="1001" height="335" alt="example-theme" src="https://github.com/user-attachments/assets/6ebbbce4-df4f-4c02-a7ad-baaecd2fae53" />
+
+An icon field may want to display a thumbnail of each available icon:
+<img width="1013" height="390" alt="example-icon" src="https://github.com/user-attachments/assets/1bcdfa54-bede-4db6-a402-2a3762c59567" />
+
+
 ## Features
 
 - **Visual Selection**: Display thumbnail images (recommended 80x80px) for each choice option

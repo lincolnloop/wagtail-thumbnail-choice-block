@@ -2,6 +2,7 @@
 Tests for ThumbnailChoiceBlock.
 """
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
@@ -97,12 +98,12 @@ class TestThumbnailChoiceBlock(TestCase):
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
                 </div>
                 <div class="thumbnail-dropdown">
-                    <label class="thumbnail-radio-option" data-label="---------">
+                    <label class="thumbnail-radio-option" data-label="---">
                         <input type="radio" name="test_field" value="">
                         <span class="thumbnail-wrapper">
                             <span class="thumbnail-placeholder"></span>
                         </span>
-                        <span class="thumbnail-label">---------</span>
+                        <span class="thumbnail-label">---</span>
                     </label>
                     <label class="thumbnail-radio-option selected" data-label="option a">
                         <input type="radio" name="test_field" value="a" checked>
@@ -352,3 +353,137 @@ class TestThumbnailChoiceBlock(TestCase):
 
         # Verify the CSS variable is present in the rendered HTML
         assert 'style="--thumbnail-size: 100px;"' in html
+
+    def test_block_default_not_required(self):
+        """Test that block is not required by default."""
+        choices_value = [("a", "Option A"), ("b", "Option B")]
+        block = ThumbnailChoiceBlock(
+            choices=choices_value,
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+        )
+
+        # Check that required is False by default
+        assert block._required is False
+        assert block.field.required is False
+
+    def test_block_with_required_true(self):
+        """Test that block can be explicitly set to required."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            required=True,
+        )
+
+        # Check that required is True
+        assert block._required is True
+        assert block.field.required is True
+
+    def test_block_adds_blank_choice_when_explicitly_not_required(self):
+        """Test that block adds a blank choice when not required."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            required=False,
+        )
+
+        field = block.field
+        choices = list(field.choices)
+
+        # Check that blank choice is first
+        assert choices[0] == ("", "---")
+        assert ("a", "Option A") in choices
+        assert ("b", "Option B") in choices
+        assert len(choices) == 3  # blank + 2 options
+
+    def test_block_adds_blank_choice_when_implicitly_not_required(self):
+        """Test that block adds a blank choice when not required."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            # Note: we did not pass a required parameter.
+        )
+
+        field = block.field
+        choices = list(field.choices)
+
+        # Check that blank choice is first
+        assert choices[0] == ("", "---")
+        assert ("a", "Option A") in choices
+        assert ("b", "Option B") in choices
+        assert len(choices) == 3  # blank + 2 options
+
+    def test_block_no_blank_choice_when_required(self):
+        """Test that block does not add blank choice when required."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            required=True,
+        )
+
+        field = block.field
+        choices = list(field.choices)
+
+        # Check that there's no blank choice
+        assert ("", "---") not in choices
+        assert ("a", "Option A") in choices
+        assert ("b", "Option B") in choices
+        assert len(choices) == 2  # Only the 2 options
+
+    def test_block_blank_choice_with_callable_choices(self):
+        """Test that blank choice is added correctly with callable choices."""
+
+        def get_choices():
+            return [("x", "Option X"), ("y", "Option Y")]
+
+        block = ThumbnailChoiceBlock(
+            choices=get_choices, thumbnails={"x": "/test/x.png"}, required=False
+        )
+
+        field = block.field
+        choices = list(field.choices)
+
+        # Check that blank choice is present
+        assert choices[0] == ("", "---")  # First option is the blank option.
+        assert ("x", "Option X") in choices
+        assert ("y", "Option Y") in choices
+        assert len(choices) == 3
+
+    def test_block_accepts_empty_value_when_not_required(self):
+        """Test that block accepts empty string value when not required."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            required=False,
+        )
+
+        # Empty value should be valid for optional field
+        assert block.clean("") == ""
+
+    def test_block_rejects_empty_value_when_required(self):
+        """Test that block rejects empty string value when required."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A"), ("b", "Option B")],
+            thumbnails={"a": "/test/a.png", "b": "/test/b.png"},
+            required=True,
+        )
+
+        # Empty value should raise ValidationError for required field
+        with self.assertRaises(ValidationError):
+            block.clean("")
+
+    def test_block_does_not_duplicate_blank_choice(self):
+        """Test that block doesn't add duplicate blank choice."""
+        # Manually add blank choice to test data
+        block = ThumbnailChoiceBlock(
+            choices=[("", "Custom Empty"), ("a", "Option A")],
+            thumbnails={"a": "/test/a.png"},
+            required=False,
+        )
+
+        field = block.field
+        choices = list(field.choices)
+
+        # Should only have one blank choice (the original one, not added)
+        blank_choices = [c for c in choices if c[0] == ""]
+        assert len(blank_choices) == 1
+        assert blank_choices[0] == ("", "Custom Empty")

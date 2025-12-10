@@ -53,6 +53,34 @@
                 </a>
                 <p class="style-info"><em>Style: {{ block.value.style }}</em></p>
             </div>
+
+        {% elif block.block_type == 'optional_icon' %}
+            <div class="content-block">
+                <h3>Optional Icon Block (required=False)</h3>
+                <div class="icon-heading-display">
+                    {% if block.value.icon %}
+                        <div class="icon-wrapper">
+                            {% include "home/icons/inline/"|add:block.value.icon|add:".html" %}
+                        </div>
+                    {% else %}
+                        <div class="icon-placeholder">No icon selected</div>
+                    {% endif %}
+                    <h4>{{ block.value.heading }}</h4>
+                </div>
+                <p class="field-info"><em>Icon field is optional - can be left blank</em></p>
+            </div>
+
+        {% elif block.block_type == 'required_icon' %}
+            <div class="content-block">
+                <h3>Required Icon Block (required=True)</h3>
+                <div class="icon-heading-display">
+                    <div class="icon-wrapper">
+                        {% include "home/icons/inline/"|add:block.value.icon|add:".html" %}
+                    </div>
+                    <h4>{{ block.value.heading }}</h4>
+                </div>
+                <p class="field-info"><em>Icon field is required - must select an icon</em></p>
+            </div>
         {% endif %}
     {% endfor %}
 </div>

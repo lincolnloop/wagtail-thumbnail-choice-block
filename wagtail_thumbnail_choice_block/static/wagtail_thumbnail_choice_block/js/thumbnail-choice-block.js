@@ -34,33 +34,63 @@
             }
 
             // Function to update the input display with selected option
-            function updateInputDisplay() {
-                const selectedOption = container.querySelector('.thumbnail-radio-option.selected');
+            function updateInputDisplay(selectedOption) {
+                // If no option provided, find it in the DOM
+                if (!selectedOption) {
+                    selectedOption = container.querySelector('.thumbnail-radio-option.selected');
+                }
+
                 if (selectedOption && filterInput) {
                     const label = selectedOption.querySelector('.thumbnail-label');
-                    filterInput.value = label ? label.textContent : '';
+                    const input = selectedOption.querySelector('input[type="radio"]');
+                    const labelText = label ? label.textContent.trim() : '';
+                    const inputValue = input ? input.value : '';
 
-                    // Update thumbnail preview
-                    if (thumbnailPreview) {
-                        const thumbnailWrapper = selectedOption.querySelector('.thumbnail-wrapper');
-                        if (thumbnailWrapper) {
-                            // Clone the thumbnail content
-                            thumbnailPreview.innerHTML = thumbnailWrapper.innerHTML;
-                            thumbnailPreview.classList.add('visible');
-                            filterInput.classList.add('has-thumbnail');
-                        } else {
+                    // Check if this is a blank choice (empty value or "---" label)
+                    const isBlankChoice = inputValue === '' || labelText === '---';
+
+                    if (isBlankChoice) {
+                        // For blank choice, show placeholder text
+                        filterInput.value = '';
+                        filterInput.setAttribute('placeholder', 'Select an option...');
+                        // Hide thumbnail for blank choice
+                        if (thumbnailPreview) {
                             thumbnailPreview.innerHTML = '';
                             thumbnailPreview.classList.remove('visible');
+                        }
+                        if (filterInput) {
                             filterInput.classList.remove('has-thumbnail');
+                        }
+                    } else {
+                        // For regular choice, show the label
+                        filterInput.value = labelText;
+                        // Clear placeholder to ensure value is visible
+                        filterInput.removeAttribute('placeholder');
+
+                        // Update thumbnail preview
+                        if (thumbnailPreview) {
+                            const thumbnailWrapper = selectedOption.querySelector('.thumbnail-wrapper');
+                            if (thumbnailWrapper) {
+                                // Clone the thumbnail content
+                                thumbnailPreview.innerHTML = thumbnailWrapper.innerHTML;
+                                thumbnailPreview.classList.add('visible');
+                                filterInput.classList.add('has-thumbnail');
+                            } else {
+                                thumbnailPreview.innerHTML = '';
+                                thumbnailPreview.classList.remove('visible');
+                                filterInput.classList.remove('has-thumbnail');
+                            }
                         }
                     }
                 } else {
-                    // No selection, clear thumbnail
+                    // No selection, clear thumbnail and show placeholder
                     if (thumbnailPreview) {
                         thumbnailPreview.innerHTML = '';
                         thumbnailPreview.classList.remove('visible');
                     }
                     if (filterInput) {
+                        filterInput.value = '';
+                        filterInput.setAttribute('placeholder', 'Select an option...');
                         filterInput.classList.remove('has-thumbnail');
                     }
                 }
@@ -87,16 +117,13 @@
             }
 
             // Function to close dropdown
-            function closeDropdown() {
+            function closeDropdown(selectedOption) {
                 if (dropdown) {
                     dropdown.classList.remove('show');
                     container.classList.remove('open');
                     filterInput.setAttribute('readonly', 'readonly');
 
-                    // Clear the filter query and reset all options to visible
-                    if (filterInput) {
-                        filterInput.value = '';
-                    }
+                    // Reset all options to visible
                     options.forEach(option => {
                         option.style.display = '';
                     });
@@ -104,8 +131,11 @@
                         noResultsMessage.style.display = 'none';
                     }
 
-                    // Update display to show selected value
-                    updateInputDisplay();
+                    // Only update display if we have a specific selection
+                    // (not when just closing due to clicking outside)
+                    if (selectedOption) {
+                        updateInputDisplay(selectedOption);
+                    }
                 }
             }
 
@@ -150,6 +180,9 @@
                 }
             });
 
+            // Track the initially selected option
+            let initiallySelectedOption = null;
+
             // Initialize selection behavior for each option
             options.forEach(option => {
                 const input = option.querySelector('input[type="radio"]');
@@ -165,25 +198,28 @@
                     options.forEach(opt => opt.classList.remove('selected'));
                     option.classList.add('selected');
 
-                    // Close dropdown and update input display
-                    closeDropdown();
+                    // Close dropdown and update input display with the selected option
+                    closeDropdown(option);
                 });
 
                 // Handle keyboard navigation
                 input.addEventListener('change', function() {
                     options.forEach(opt => opt.classList.remove('selected'));
                     option.classList.add('selected');
-                    updateInputDisplay();
+                    updateInputDisplay(option);
                 });
 
                 // Set initial state
                 if (input.checked) {
                     option.classList.add('selected');
+                    initiallySelectedOption = option;
                 }
             });
 
             // Initialize the input display with the selected value
-            updateInputDisplay();
+            if (initiallySelectedOption) {
+                updateInputDisplay(initiallySelectedOption);
+            }
         });
     }
 

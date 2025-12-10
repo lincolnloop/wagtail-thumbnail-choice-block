@@ -134,6 +134,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         thumbnails=None,
         thumbnail_templates=None,
         thumbnail_size=40,
+        required=False,
         **kwargs,
     ):
         # Store the original choices, thumbnails, and thumbnail_templates (may be callable)
@@ -141,13 +142,17 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         self._thumbnails_source = thumbnails
         self._thumbnail_templates_source = thumbnail_templates
         self._thumbnail_size = thumbnail_size
+        self._required = required
 
         # For initialization, we need to resolve callables to get actual choices
         # This is needed for the parent ChoiceBlock's validation
         resolved_choices = self._resolve_callable(choices)
 
+        # Add blank choice if field is not required
+        resolved_choices = self._add_blank_choice(resolved_choices, required)
+
         # Don't pass widget in kwargs yet - we'll override get_form_state
-        super().__init__(choices=resolved_choices, **kwargs)
+        super().__init__(choices=resolved_choices, required=required, **kwargs)
 
     def _resolve_callable(self, value):
         """
@@ -163,6 +168,32 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
             return value()
         return value
 
+    def _add_blank_choice(self, choices, required):
+        """
+        Add a blank choice to the beginning of choices list if field is not required.
+
+        Args:
+            choices: List of (value, label) tuples
+            required: Boolean indicating if field is required
+
+        Returns:
+            Choices list with blank option prepended if not required
+        """
+        if required or choices is None:
+            return choices
+
+        # Convert to list if needed
+        choices_list = list(choices) if choices else []
+
+        # Check if blank choice already exists
+        has_blank = any(choice[0] == "" for choice in choices_list)
+
+        # Prepend blank choice if it doesn't exist
+        if not has_blank:
+            choices_list.insert(0, ("", "---"))
+
+        return choices_list
+
     def get_form_state(self, value):
         """
         Override to ensure we have fresh choices and thumbnails when rendering the form.
@@ -174,6 +205,9 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         resolved_thumbnail_templates = (
             self._resolve_callable(self._thumbnail_templates_source) or {}
         )
+
+        # Add blank choice if field is not required
+        resolved_choices = self._add_blank_choice(resolved_choices, self._required)
 
         # Update the field's choices if they've changed
         if resolved_choices is not None:
@@ -201,8 +235,18 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
             self._resolve_callable(self._thumbnail_templates_source) or {}
         )
 
-        # Create the custom widget
+        # Resolve choices and add blank choice if not required
+        resolved_choices = self._resolve_callable(self._choices_source)
+        resolved_choices = self._add_blank_choice(resolved_choices, self._required)
+
+        # Update the stored choices with the resolved ones
+        # This must happen before calling parent's get_field
+        if resolved_choices is not None:
+            self.choices = resolved_choices
+
+        # Create the custom widget with the resolved choices
         widget = ThumbnailRadioSelect(
+            choices=resolved_choices if resolved_choices else [],
             thumbnail_mapping=resolved_thumbnails,
             thumbnail_template_mapping=resolved_thumbnail_templates,
             thumbnail_size=self._thumbnail_size,
@@ -211,4 +255,12 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         # Pass the widget to parent's get_field
         kwargs["widget"] = widget
 
-        return super().get_field(**kwargs)
+        # Get the field from the parent
+        field = super().get_field(**kwargs)
+
+        # Override the field's choices to ensure no extra blank choices are added
+        if resolved_choices is not None:
+            field.choices = resolved_choices
+            field.widget.choices = resolved_choices
+
+        return field

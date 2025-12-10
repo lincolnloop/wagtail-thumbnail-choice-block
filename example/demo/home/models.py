@@ -162,6 +162,58 @@ class HomePage(Page):
                     icon="link",
                 ),
             ),
+            # Optional icon example - demonstrates required=False (default)
+            (
+                "optional_icon",
+                blocks.StructBlock(
+                    [
+                        (
+                            "icon",
+                            ThumbnailChoiceBlock(
+                                choices=get_icon_choices(),
+                                thumbnail_templates=get_icon_thumbnail_templates(),
+                                thumbnail_size=20,
+                                required=False,  # This is now the default
+                                label="Optional Icon",
+                                help_text="You can leave this blank if you don't want an icon",
+                            ),
+                        ),
+                        (
+                            "heading",
+                            blocks.CharBlock(
+                                help_text="The heading text",
+                            ),
+                        ),
+                    ],
+                    icon="placeholder",
+                ),
+            ),
+            # Required icon example - demonstrates required=True
+            (
+                "required_icon",
+                blocks.StructBlock(
+                    [
+                        (
+                            "icon",
+                            ThumbnailChoiceBlock(
+                                choices=get_icon_choices(),
+                                thumbnail_templates=get_icon_thumbnail_templates(),
+                                thumbnail_size=20,
+                                required=True,  # Explicitly required
+                                label="Required Icon",
+                                help_text="You must select an icon",
+                            ),
+                        ),
+                        (
+                            "heading",
+                            blocks.CharBlock(
+                                help_text="The heading text",
+                            ),
+                        ),
+                    ],
+                    icon="placeholder",
+                ),
+            ),
         ],
         use_json_field=True,
         blank=True,

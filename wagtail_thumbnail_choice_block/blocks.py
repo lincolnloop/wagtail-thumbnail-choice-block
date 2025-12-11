@@ -30,8 +30,8 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
                     ('dark', 'Dark Theme'),
                 ],
                 thumbnails={
-                    'light': '/static/images/theme-light-thumb.png',
-                    'dark': '/static/images/theme-dark-thumb.png',
+                    'light': static('images/theme-light-thumb.png'),
+                    'dark': static('images/theme-dark-thumb.png'),
                 }
             )
         ```

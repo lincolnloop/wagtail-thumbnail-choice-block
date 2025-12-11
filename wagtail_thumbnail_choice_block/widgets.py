@@ -25,8 +25,8 @@ class ThumbnailRadioSelect(RadioSelect):
         widget = ThumbnailRadioSelect(
             choices=[('light', 'Light Theme'), ('dark', 'Dark Theme')],
             thumbnail_mapping={
-                'light': '/static/images/light-thumb.png',
-                'dark': '/static/images/dark-thumb.png',
+                'light': static('images/light-thumb.png'),
+                'dark': static('images/dark-thumb.png'),
             }
         )
 

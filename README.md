@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 ### Basic Usage
 
 ```python
+from django.templatetags.static import static
 from wagtail import blocks
 from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
 
@@ -51,9 +52,9 @@ class BannerSettings(blocks.StructBlock):
             ('auto', 'Auto'),
         ),
         thumbnails={
-            'light': '/static/images/theme-light-thumb.png',
-            'dark': '/static/images/theme-dark-thumb.png',
-            'auto': '/static/images/theme-auto-thumb.png',
+            'light': static('images/theme-light-thumb.png'),
+            'dark': static('images/theme-dark-thumb.png'),
+            'auto': static('images/theme-auto-thumb.png'),
         },
         default='light',
     )

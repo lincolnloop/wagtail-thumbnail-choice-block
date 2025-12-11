@@ -96,6 +96,9 @@
                 }
             }
 
+            // Track the selection when dropdown opens
+            let selectionBeforeOpen = null;
+
             // Function to toggle dropdown visibility
             function toggleDropdown() {
                 if (dropdown) {
@@ -103,6 +106,10 @@
                     container.classList.toggle('open');
                     // If opening dropdown, focus on filtering (allow typing)
                     if (dropdown.classList.contains('show')) {
+                        // Save the current selection before opening
+                        const currentSelected = container.querySelector('.thumbnail-radio-option.selected input[type="radio"]:checked');
+                        selectionBeforeOpen = currentSelected ? currentSelected.value : null;
+
                         filterInput.removeAttribute('readonly');
                         filterInput.select();
                         // Ensure all options are visible when opening
@@ -168,6 +175,104 @@
                             noResultsMessage.style.display = 'block';
                         } else {
                             noResultsMessage.style.display = 'none';
+                        }
+                    }
+                });
+
+                // Handle keyboard navigation
+                filterInput.addEventListener('keydown', function(e) {
+                    const isDropdownOpen = dropdown && dropdown.classList.contains('show');
+
+                    // Get visible options
+                    const visibleOptions = Array.from(options).filter(opt => opt.style.display !== 'none');
+
+                    // Arrow Down: Open dropdown or move to next option
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (!isDropdownOpen) {
+                            toggleDropdown();
+                        } else if (visibleOptions.length > 0) {
+                            const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains('selected'));
+                            const nextIndex = currentIndex < visibleOptions.length - 1 ? currentIndex + 1 : 0;
+                            const nextOption = visibleOptions[nextIndex];
+                            const input = nextOption.querySelector('input[type="radio"]');
+                            if (input) {
+                                input.checked = true;
+                                input.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    }
+
+                    // Arrow Up: Move to previous option
+                    else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (isDropdownOpen && visibleOptions.length > 0) {
+                            const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains('selected'));
+                            const prevIndex = currentIndex > 0 ? currentIndex - 1 : visibleOptions.length - 1;
+                            const prevOption = visibleOptions[prevIndex];
+                            const input = prevOption.querySelector('input[type="radio"]');
+                            if (input) {
+                                input.checked = true;
+                                input.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    }
+
+                    // Enter: Select current option and close dropdown
+                    else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (isDropdownOpen) {
+                            const selectedOption = container.querySelector('.thumbnail-radio-option.selected');
+                            if (selectedOption) {
+                                closeDropdown(selectedOption);
+                            }
+                        } else {
+                            toggleDropdown();
+                        }
+                    }
+
+                    // Escape: Close dropdown and revert to previous selection
+                    else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        if (isDropdownOpen) {
+                            // Revert to the selection before opening
+                            if (selectionBeforeOpen !== null) {
+                                options.forEach(option => {
+                                    const input = option.querySelector('input[type="radio"]');
+                                    if (input && input.value === selectionBeforeOpen) {
+                                        input.checked = true;
+                                        option.classList.add('selected');
+                                    } else {
+                                        option.classList.remove('selected');
+                                    }
+                                });
+                            } else {
+                                // No previous selection, uncheck all
+                                options.forEach(option => {
+                                    const input = option.querySelector('input[type="radio"]');
+                                    if (input) input.checked = false;
+                                    option.classList.remove('selected');
+                                });
+                            }
+                            closeDropdown();
+                            // Restore the display to show reverted selection
+                            updateInputDisplay();
+                        }
+                    }
+
+                    // Space: Toggle dropdown when closed, or select when open
+                    else if (e.key === ' ') {
+                        // Only handle space if input is readonly (not in filter mode)
+                        if (filterInput.hasAttribute('readonly')) {
+                            e.preventDefault();
+                            if (!isDropdownOpen) {
+                                toggleDropdown();
+                            } else {
+                                const selectedOption = container.querySelector('.thumbnail-radio-option.selected');
+                                if (selectedOption) {
+                                    closeDropdown(selectedOption);
+                                }
+                            }
                         }
                     }
                 });

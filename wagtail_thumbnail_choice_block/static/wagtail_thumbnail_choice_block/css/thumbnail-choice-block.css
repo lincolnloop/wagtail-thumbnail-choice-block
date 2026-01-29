@@ -27,6 +27,9 @@
   justify-content: center;
   flex-shrink: 0;
   pointer-events: none;
+  background: #F6F6F8;
+  padding: 4px;
+  border-radius: 4px;
 }
 
 .thumbnail-selected-preview.visible {
@@ -99,12 +102,12 @@
   display: none;
   flex-direction: column;
   gap: 4px;
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #C8C8C8;
   border-radius: 4px;
   padding: 4px;
-  background: white;
+  background: #F6F6F8;
   margin-top: 4px;
 }
 
@@ -115,7 +118,7 @@
 /* Option Items - One per line */
 .thumbnail-radio-option {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   gap: 12px;
   padding: 4px 12px;
@@ -123,17 +126,18 @@
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: white;
+  background: transparent;
+  width: 80px;
 }
 
 .thumbnail-radio-option:hover {
-  background: #f5f5f5;
-  border-color: #0060DF;
+    border-color: #E0E0E0;
+    background: rgba(255,255,255,0.6);
 }
 
 .thumbnail-radio-option.selected {
-  border-color: #0060DF;
-  background: #f0f7ff;
+  border-color: #007D7E;
+  background: rgba(255,255,255,0.3
 }
 
 .thumbnail-radio-option input[type="radio"] {
@@ -191,16 +195,16 @@
 }
 
 .thumbnail-label {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
-  color: #333;
-  text-align: left;
+  color: #5C5C5C;
   flex: 1;
-  line-height: 1.4;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .thumbnail-radio-option.selected .thumbnail-label {
-  color: #0060DF;
+  color: #2D1F5F;
   font-weight: 600;
 }
 
@@ -211,4 +215,27 @@
   color: #666;
   font-size: 14px;
   font-style: italic;
+}
+
+
+@media (prefers-color-scheme: dark) {
+
+.thumbnail-selected-preview {
+  background: #5F5F5F;
+  border-color: #5C5C5C;
+  color: white;
+}
+
+.thumbnail-label {
+  color: #C8C8C8;
+}
+
+.thumbnail-radio-option.selected .thumbnail-label {
+    color: white;
+  }
+
+  .thumbnail-radio-option:hover {
+    border-color: #7C7C7C;
+    background: rgba(255,255,255,0.1);
+  }
 }

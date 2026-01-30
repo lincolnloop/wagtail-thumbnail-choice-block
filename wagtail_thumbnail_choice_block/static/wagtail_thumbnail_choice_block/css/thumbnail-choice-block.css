@@ -221,13 +221,12 @@
 @media (prefers-color-scheme: dark) {
 
 .thumbnail-selected-preview {
-  background: #5F5F5F;
   border-color: #5C5C5C;
   color: white;
 }
 
-.thumbnail-label {
-  color: #C8C8C8;
+.thumbnail-label, .thumbnail-radio-option.selected .thumbnail-label { {
+  color: #5C5C5C;
 }
 
 .thumbnail-radio-option.selected .thumbnail-label {

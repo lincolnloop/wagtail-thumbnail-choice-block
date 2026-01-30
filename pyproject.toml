@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wagtail-thumbnail-choice-block"
-version = "0.1.2"
+version = "0.1.3"
 description = "A Wagtail block that displays thumbnail images for choice fields"
 readme = "README.md"
 requires-python = ">=3.10"

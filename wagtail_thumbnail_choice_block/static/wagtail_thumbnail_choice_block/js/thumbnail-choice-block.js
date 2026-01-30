@@ -186,8 +186,8 @@
                     // Get visible options
                     const visibleOptions = Array.from(options).filter(opt => opt.style.display !== 'none');
 
-                    // Arrow Down: Open dropdown or move to next option
-                    if (e.key === 'ArrowDown') {
+                    // Arrow Down/Right: Open dropdown or move to next option
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                         e.preventDefault();
                         if (!isDropdownOpen) {
                             toggleDropdown();
@@ -203,8 +203,8 @@
                         }
                     }
 
-                    // Arrow Up: Move to previous option
-                    else if (e.key === 'ArrowUp') {
+                    // Arrow Up/Left: Move to previous option
+                    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                         e.preventDefault();
                         if (isDropdownOpen && visibleOptions.length > 0) {
                             const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains('selected'));

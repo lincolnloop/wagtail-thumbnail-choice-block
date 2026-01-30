@@ -114,6 +114,7 @@
 .thumbnail-dropdown.show {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
 }
 
 /* Option Items - One per line */

@@ -10,7 +10,7 @@
       {% if group %}<span class="thumbnail-radio-group-label">{{ group }}</span>{% endif %}
   {% endif %}
   {% for option in options %}
-    <label{% if option.attrs.id %} for="{{ option.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if option.attrs.checked %} selected{% endif %}" data-label="{{ option.label|lower }}">
+    <label{% if option.attrs.id %} for="{{ option.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if option.attrs.checked and option.value %} selected{% endif %}" data-label="{{ option.label|lower }}">
       <input type="{{ option.type }}" name="{{ option.name }}"{% if option.value != None %} value="{{ option.value }}"{% endif %}{% for name, value in option.attrs.items %} {{ name }}{% if value != True %}="{{ value }}"{% endif %}{% endfor %}>
       <span class="thumbnail-wrapper">
         {% if option.thumbnail_template_html %}

@@ -1,4 +1,12 @@
 /* Thumbnail Choice Block Styles */
+
+/* #767676 is the midpoint gray that meets WCAG 2.0 AA contrast (4.5:1)
+   against both pure white and pure black, ensuring icons of either color
+   remain visible in both light and dark mode. */
+:root {
+  --thumbnail-bg: #767676;
+}
+
 .thumbnail-radio-select {
   display: flex;
   flex-direction: column;
@@ -27,7 +35,7 @@
   justify-content: center;
   flex-shrink: 0;
   pointer-events: none;
-  background: #f6f6f8;
+  background: var(--thumbnail-bg);
   padding: 4px;
   border-radius: 4px;
 }
@@ -162,6 +170,7 @@
   border-radius: 4px;
   overflow: hidden;
   flex-shrink: 0;
+  background: var(--thumbnail-bg);
 }
 
 .thumbnail-image {
@@ -231,7 +240,6 @@
   }
 
   .thumbnail-selected-preview {
-    background-color: #222;
     border-color: #5c5c5c;
     color: white;
   }

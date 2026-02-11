@@ -1,4 +1,12 @@
 /* Thumbnail Choice Block Styles */
+
+/* #767676 is the midpoint gray that meets WCAG 2.0 AA contrast (4.5:1)
+   against both pure white and pure black, ensuring icons of either color
+   remain visible in both light and dark mode. */
+:root {
+  --thumbnail-bg: #767676;
+}
+
 .thumbnail-radio-select {
   display: flex;
   flex-direction: column;
@@ -27,7 +35,6 @@
   justify-content: center;
   flex-shrink: 0;
   pointer-events: none;
-  background: #F6F6F8;
   padding: 4px;
   border-radius: 4px;
 }
@@ -51,6 +58,10 @@
   justify-content: center;
 }
 
+.thumbnail-selected-preview {
+    filter: drop-shadow(0 0 1px black) drop-shadow(0 0 1px white);
+}
+
 .thumbnail-selected-preview [class*="icon"] {
   font-size: 16px;
 }
@@ -62,24 +73,28 @@
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, padding-left 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    padding-left 0.2s ease;
   cursor: pointer;
   background: white;
 }
 
 .thumbnail-filter-input.has-thumbnail {
-  padding-left: calc(clamp(20px, calc(var(--thumbnail-size, 40px) * 0.6), 32px) + 16px);
+  padding-left: calc(
+    clamp(20px, calc(var(--thumbnail-size, 40px) * 0.6), 32px) + 16px
+  );
 }
 
 .thumbnail-filter-input:focus {
   outline: none;
-  border-color: #0060DF;
+  border-color: #0060df;
   box-shadow: 0 0 0 2px rgba(0, 96, 223, 0.1);
 }
 
 /* Dropdown caret indicator */
 .thumbnail-filter-wrapper::after {
-  content: '';
+  content: "";
   position: absolute;
   right: 12px;
   top: 50%;
@@ -104,10 +119,9 @@
   gap: 4px;
   max-height: 400px;
   overflow-y: auto;
-  border: 1px solid #C8C8C8;
+  border: 1px solid #c8c8c8;
   border-radius: 4px;
   padding: 4px;
-  background: #F6F6F8;
   margin-top: 4px;
 }
 
@@ -115,6 +129,7 @@
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
+  gap: 12px 0;
 }
 
 /* Option Items - One per line */
@@ -124,6 +139,7 @@
   align-items: center;
   gap: 12px;
   padding: 4px 12px;
+  width: 98px;
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
@@ -132,13 +148,13 @@
 }
 
 .thumbnail-radio-option:hover {
-  background: rgba(255,255,255,0.6);
-  border-color: #E0E0E0;
+  background: var(--thumbnail-bg);
+  border-color: #e0e0e0;
 }
 
 .thumbnail-radio-option.selected {
-  border-color: #007D7E;
-  background: rgba(255,255,255,0.3);
+  border-color: #007d7e;
+  background: var(--thumbnail-bg);
 }
 
 .thumbnail-radio-option input[type="radio"] {
@@ -156,6 +172,10 @@
   border-radius: 4px;
   overflow: hidden;
   flex-shrink: 0;
+}
+
+.thumbnail-wrapper > *:not(.thumbnail-placeholder) {
+  filter: drop-shadow(0 0 1px black) drop-shadow(0 0 1px white);
 }
 
 .thumbnail-image {
@@ -198,14 +218,14 @@
 .thumbnail-label {
   font-size: 11px;
   font-weight: 500;
-  color: #5C5C5C;
+  color: #5c5c5c;
   flex: 1;
   line-height: 1.2;
   text-align: center;
 }
 
 .thumbnail-radio-option.selected .thumbnail-label {
-  color: #2D1F5F;
+  color: #2d1f5f;
   font-weight: 600;
 }
 
@@ -218,24 +238,28 @@
   font-style: italic;
 }
 
-
 @media (prefers-color-scheme: dark) {
+  .thumbnail-dropdown {
+    background: #222;
+    border: 1px solid #5c5c5c;
+  }
 
-.thumbnail-selected-preview {
-  border-color: #5C5C5C;
-  color: white;
-}
+  .thumbnail-selected-preview {
+    border-color: #5c5c5c;
+    color: white;
+  }
 
-.thumbnail-label, .thumbnail-radio-option.selected .thumbnail-label { {
-  color: #5C5C5C;
-}
+  .thumbnail-label,
+  .thumbnail-radio-option.selected .thumbnail-label {
+    color: #c8c8c8;
+  }
 
-.thumbnail-radio-option.selected .thumbnail-label {
+  .thumbnail-radio-option.selected .thumbnail-label {
     color: white;
   }
 
   .thumbnail-radio-option:hover {
-    border-color: #7C7C7C;
-    background: rgba(255,255,255,0.1);
+    border-color: #7c7c7c;
+    background: var(--thumbnail-bg);
   }
 }

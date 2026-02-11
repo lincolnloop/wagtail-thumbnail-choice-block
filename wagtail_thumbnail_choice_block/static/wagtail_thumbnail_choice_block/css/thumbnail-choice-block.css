@@ -35,7 +35,6 @@
   justify-content: center;
   flex-shrink: 0;
   pointer-events: none;
-  background: var(--thumbnail-bg);
   padding: 4px;
   border-radius: 4px;
 }
@@ -57,6 +56,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.thumbnail-selected-preview {
+    filter: drop-shadow(0 0 1px black) drop-shadow(0 0 1px white);
 }
 
 .thumbnail-selected-preview [class*="icon"] {
@@ -119,7 +122,6 @@
   border: 1px solid #c8c8c8;
   border-radius: 4px;
   padding: 4px;
-  background: #f6f6f8;
   margin-top: 4px;
 }
 
@@ -146,13 +148,13 @@
 }
 
 .thumbnail-radio-option:hover {
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--thumbnail-bg);
   border-color: #e0e0e0;
 }
 
 .thumbnail-radio-option.selected {
   border-color: #007d7e;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--thumbnail-bg);
 }
 
 .thumbnail-radio-option input[type="radio"] {
@@ -170,7 +172,10 @@
   border-radius: 4px;
   overflow: hidden;
   flex-shrink: 0;
-  background: var(--thumbnail-bg);
+}
+
+.thumbnail-wrapper > *:not(.thumbnail-placeholder) {
+  filter: drop-shadow(0 0 1px black) drop-shadow(0 0 1px white);
 }
 
 .thumbnail-image {
@@ -255,6 +260,6 @@
 
   .thumbnail-radio-option:hover {
     border-color: #7c7c7c;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--thumbnail-bg);
   }
 }

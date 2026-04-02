@@ -28,6 +28,9 @@
                 return;
             }
 
+            // Read the translated placeholder from the server-rendered HTML
+            const placeholder = filterInput ? filterInput.getAttribute('placeholder') : 'Select an option...';
+
             // Ensure no results message is hidden initially
             if (noResultsMessage) {
                 noResultsMessage.style.display = 'none';
@@ -52,7 +55,7 @@
                     if (isBlankChoice) {
                         // For blank choice, show placeholder text
                         filterInput.value = '';
-                        filterInput.setAttribute('placeholder', 'Select an option...');
+                        filterInput.setAttribute('placeholder', placeholder);
                         // Hide thumbnail for blank choice
                         if (thumbnailPreview) {
                             thumbnailPreview.innerHTML = '';
@@ -90,7 +93,7 @@
                     }
                     if (filterInput) {
                         filterInput.value = '';
-                        filterInput.setAttribute('placeholder', 'Select an option...');
+                        filterInput.setAttribute('placeholder', placeholder);
                         filterInput.classList.remove('has-thumbnail');
                     }
                 }

@@ -4,6 +4,7 @@ Widget classes for Wagtail Thumbnail Choice Block.
 
 from django.forms import RadioSelect
 from django.template.loader import render_to_string
+from django.utils import translation
 
 
 class ThumbnailRadioSelect(RadioSelect):
@@ -111,6 +112,7 @@ class ThumbnailRadioSelect(RadioSelect):
                 tuple(c[0] for c in self.choices),
                 thumbnail_mapping_key,
                 template_mapping_key,
+                translation.get_language(),
             )
             hash(key)  # verify the key is hashable before leaving the try block
         except TypeError:

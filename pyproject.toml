@@ -70,6 +70,7 @@ include = ["wagtail_thumbnail_choice_block*"]
 
 [tool.setuptools.package-data]
 wagtail_thumbnail_choice_block = [
+    "locale/**/*",
     "templates/**/*.html",
     "static/**/*",
 ]

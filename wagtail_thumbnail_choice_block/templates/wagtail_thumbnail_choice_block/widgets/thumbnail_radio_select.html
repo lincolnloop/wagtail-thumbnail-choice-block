@@ -1,7 +1,8 @@
+{% load i18n %}
 <div{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}{% if widget.attrs.class %} class="thumbnail-radio-select {{ widget.attrs.class }}"{% else %} class="thumbnail-radio-select"{% endif %} style="--thumbnail-size: {{ widget.thumbnail_size }}px;">
   <div class="thumbnail-filter-wrapper">
     <div class="thumbnail-selected-preview"></div>
-    <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
+    <input type="text" class="thumbnail-filter-input" placeholder="{% trans 'Select an option...' %}" autocomplete="off" readonly>
   </div>
   <div class="thumbnail-dropdown">
 {% for group, options, index in widget.optgroups %}
@@ -26,6 +27,6 @@
   {% endfor %}
   {% if group %}</div>{% endif %}
 {% endfor %}
-    <div class="thumbnail-no-results" style="display: none;">No matching options found.</div>
+    <div class="thumbnail-no-results" style="display: none;">{% trans "No matching options found." %}</div>
   </div>
 </div>

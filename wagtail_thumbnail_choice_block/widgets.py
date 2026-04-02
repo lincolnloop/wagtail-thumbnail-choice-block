@@ -45,6 +45,12 @@ class ThumbnailRadioSelect(RadioSelect):
 
     template_name = "wagtail_thumbnail_choice_block/widgets/thumbnail_radio_select.html"
 
+    # Class-level cache shared across all instances. Keyed on the arguments that
+    # fully determine the rendered HTML so that (Wagtail's) Telepath's repeated
+    # per-instance render() calls (one per block occurrence in the page tree)
+    # collapse to a single real render followed by fast dictionary lookups.
+    _render_cache = {}
+
     class Media:
         css = {
             "all": ("wagtail_thumbnail_choice_block/css/thumbnail-choice-block.css",)
@@ -74,6 +80,49 @@ class ThumbnailRadioSelect(RadioSelect):
         context = super().get_context(name, value, attrs)
         context["widget"]["thumbnail_size"] = self.thumbnail_size
         return context
+
+    def render(self, name, value, attrs=None, renderer=None):
+        """
+        Override to cache the full rendered HTML at the class level.
+
+        Telepath (Wagtail's JS serialisation layer) calls render() once per block
+        instance in the page tree. When many blocks share the same choices and
+        thumbnail mappings, all but the first call are served from this cache.
+
+        The cache key is based on mapping *content* rather than object identity so
+        that distinct instances built from the same choices list (which each create
+        a new dict object) correctly share a cache entry.
+        """
+        try:
+            thumbnail_mapping_key = tuple(sorted(self.thumbnail_mapping.items()))
+            template_mapping_key = tuple(
+                sorted(
+                    (
+                        k,
+                        v if isinstance(v, str) else tuple(sorted(v.items())),
+                    )
+                    for k, v in self.thumbnail_template_mapping.items()
+                )
+            )
+            key = (
+                name,
+                value,
+                tuple(sorted((attrs or {}).items())),
+                tuple(c[0] for c in self.choices),
+                thumbnail_mapping_key,
+                template_mapping_key,
+            )
+            hash(key)  # verify the key is hashable before leaving the try block
+        except TypeError:
+            # Mapping values are not fully hashable (e.g. nested dicts with
+            # non-hashable context values) — render without caching.
+            return super().render(name, value, attrs, renderer)
+
+        if key not in ThumbnailRadioSelect._render_cache:
+            ThumbnailRadioSelect._render_cache[key] = super().render(
+                name, value, attrs, renderer
+            )
+        return ThumbnailRadioSelect._render_cache[key]
 
     def create_option(
         self, name, value, label, selected, index, subindex=None, attrs=None

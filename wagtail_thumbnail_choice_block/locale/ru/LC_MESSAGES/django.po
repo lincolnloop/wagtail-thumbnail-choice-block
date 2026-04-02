@@ -1,0 +1,31 @@
+# Russian translations for wagtail-thumbnail-choice-block.
+# Copyright (C) 2026 Lincoln Loop
+# This file is distributed under the same license as the wagtail-thumbnail-choice-block package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: wagtail-thumbnail-choice-block 0.2.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-02 15:41-0500\n"
+"PO-Revision-Date: 2026-04-02 15:41-0500\n"
+"Last-Translator: \n"
+"Language-Team: Russian\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+#: apps.py:7
+msgid "Wagtail Thumbnail Choice Block"
+msgstr "Блок выбора миниатюр для Wagtail"
+
+#: templates/wagtail_thumbnail_choice_block/widgets/thumbnail_radio_select.html:5
+msgid "Select an option..."
+msgstr "Выберите вариант..."
+
+#: templates/wagtail_thumbnail_choice_block/widgets/thumbnail_radio_select.html:30
+msgid "No matching options found."
+msgstr "Подходящие варианты не найдены."

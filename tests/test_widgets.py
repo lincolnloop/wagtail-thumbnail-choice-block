@@ -496,3 +496,159 @@ class TestThumbnailTemplateCaching(TestCase):
         # The rendered HTML for html_b and html_b_again is the same, because the
         # selected (checked) state is the same.
         assert html_b == html_b_again
+
+
+class TestThumbnailRadioSelectTreeItems(TestCase):
+    """
+    Tests for the tree_items rendering path introduced by the directory-scanning
+    feature.  The tests in this class — test_flat_mode_html_matches_snapshot — are
+    intentionally written against the *pre-refactor* template (before supporting
+    directory-based icon finding) so the tests act as a regression guard, proving
+    that flat choices continue to render identically.
+    """
+
+    def setUp(self):
+        ThumbnailRadioSelect._render_cache.clear()
+
+    def tearDown(self):
+        ThumbnailRadioSelect._render_cache.clear()
+
+    def test_flat_mode_html_matches_snapshot(self):
+        """
+        Flat choices (no tree_items) must survive the optgroups→tree_items
+        template refactor unchanged in every observable respect.
+
+        Assertions target structural invariants rather than the full HTML string
+        so that the addition of new attributes (e.g. data-depth) in the new
+        template does not cause a false failure.  What matters is:
+
+        - no heading or group wrapper elements are emitted
+        - every option is present with correct value, label, and thumbnail
+        - the selected state lands on the right option
+        - the outer container and dropdown structure is intact
+
+        Captured against the pre-refactor template output:
+
+            <label for="shape-id_0" class="thumbnail-radio-option" data-label="circle">
+              <input type="radio" name="shape" value="circle" id="shape-id_0">
+              ...
+            </label>
+            <label for="shape-id_1" class="thumbnail-radio-option selected" data-label="square">
+              <input type="radio" name="shape" value="square" id="shape-id_1" checked>
+              ...
+            </label>
+            <label for="shape-id_2" class="thumbnail-radio-option" data-label="triangle">
+              <input type="radio" name="shape" value="triangle" id="shape-id_2">
+              ...
+            </label>
+        """
+        widget = ThumbnailRadioSelect(
+            choices=[
+                ("circle", "Circle"),
+                ("square", "Square"),
+                ("triangle", "Triangle"),
+            ],
+            thumbnail_mapping={
+                "circle": "/static/circle.svg",
+                "square": "/static/square.svg",
+                "triangle": "/static/triangle.svg",
+            },
+            thumbnail_size=40,
+        )
+
+        html = widget.render("shape", "square", attrs={"id": "shape-id"})
+
+        # No heading or group structure — flat choices must produce none.
+        assert "thumbnail-radio-heading" not in html
+        assert "thumbnail-radio-group" not in html
+
+        # All three options are present with correct identifiers.
+        assert 'data-label="circle"' in html
+        assert 'data-label="square"' in html
+        assert 'data-label="triangle"' in html
+        assert 'value="circle"' in html
+        assert 'value="square"' in html
+        assert 'value="triangle"' in html
+
+        # Labels are rendered.
+        assert ">Circle<" in html
+        assert ">Square<" in html
+        assert ">Triangle<" in html
+
+        # Thumbnail images are rendered.
+        assert "/static/circle.svg" in html
+        assert "/static/square.svg" in html
+        assert "/static/triangle.svg" in html
+
+        # The selected option (square) carries the CSS class and checked attribute;
+        # the others do not.
+        assert 'class="thumbnail-radio-option selected" data-label="square"' in html
+        assert 'value="square"' in html and "checked" in html
+        assert 'class="thumbnail-radio-option" data-label="circle"' in html
+        assert 'class="thumbnail-radio-option" data-label="triangle"' in html
+
+        # Outer structure is intact.
+        assert "thumbnail-radio-select" in html
+        assert "thumbnail-dropdown" in html
+        assert "thumbnail-filter-input" in html
+        assert "thumbnail-no-results" in html
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_flat_mode_with_template_thumbnails_html_matches_snapshot(
+        self, mock_render
+    ):
+        """
+        Covers the thumbnail_template_mapping branch (e.g. icon sprite patterns).
+
+        The thumbnail_template_html path in the template is distinct from the
+        thumbnail_url path; it must also survive the optgroups→tree_items refactor
+        unchanged.  render_to_string is mocked so the test needs no real template
+        file.
+
+        Key assertions:
+        - no <img> tag (thumbnail_url branch was not taken)
+        - no thumbnail-placeholder (template rendered something, not empty)
+        - no heading or group structure
+        - selected state is on the right option
+        """
+        mock_render.return_value = '<svg class="icon"><use href="#star"/></svg>'
+
+        widget = ThumbnailRadioSelect(
+            choices=[
+                ("star", "Star"),
+                ("check", "Check"),
+            ],
+            thumbnail_template_mapping={
+                "star": {
+                    "template": "some/icon.html",
+                    "context": {"icon_name": "star"},
+                },
+                "check": {
+                    "template": "some/icon.html",
+                    "context": {"icon_name": "check"},
+                },
+            },
+            thumbnail_size=40,
+        )
+
+        html = widget.render("icon", "check", attrs={"id": "icon-id"})
+
+        # No heading or group structure.
+        assert "thumbnail-radio-heading" not in html
+        assert "thumbnail-radio-group" not in html
+
+        # Both options are present.
+        assert 'data-label="star"' in html
+        assert 'data-label="check"' in html
+
+        # Template HTML branch was taken — no <img> tag, no placeholder.
+        assert "<img" not in html
+        assert "thumbnail-placeholder" not in html
+
+        # Mocked SVG appears unescaped, confirming |safe was applied in the template
+        # (if it were escaped, we'd see &lt;svg instead).
+        assert '<svg class="icon">' in html
+
+        # Selected state is on check, not star.
+        assert 'class="thumbnail-radio-option selected" data-label="check"' in html
+        assert 'class="thumbnail-radio-option" data-label="star"' in html

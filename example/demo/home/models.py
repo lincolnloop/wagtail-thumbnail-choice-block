@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.templatetags.static import static
 
@@ -8,6 +10,26 @@ from wagtail import blocks
 
 from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
 from wagtail_thumbnail_choice_block.widgets import ThumbnailRadioSelect
+
+
+def _icon_label_fn(stem: str) -> str:
+    """Convert a filename stem to a display label, stripping trailing size suffixes.
+
+    Examples:
+        "right-16"  -> "Right"
+        "left_arrow" -> "Left Arrow"
+    """
+    stem = re.sub(r"-\d+$", "", stem)
+    return stem.replace("_", " ").replace("-", " ").title()
+
+
+# Directory-based block created at module level so its widget (with pre-scanned
+# tree_items) can be reused in the FieldPanel below.
+_directory_icon_block = ThumbnailChoiceBlock(
+    thumbnail_directory="icons",
+    thumbnail_size=40,
+    thumbnail_directory_label_fn=_icon_label_fn,
+)
 
 
 def get_icon_choices():
@@ -66,6 +88,13 @@ class HomePage(Page):
             ("auto", "Auto (System Preference)"),
         ],
         default="light",
+    )
+
+    # Example: Directory-based icon picker — choices scanned automatically from static/icons/
+    directory_icon = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Icon chosen from the static/icons/ directory.",
     )
 
     # Example 2: Layout choice with custom thumbnail size
@@ -188,6 +217,17 @@ class HomePage(Page):
                     icon="placeholder",
                 ),
             ),
+            # Directory-based icon selector - choices derived automatically from static files
+            (
+                "directory_icon",
+                ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_label_fn=_icon_label_fn,
+                    label="Icon (from directory)",
+                    help_text="Icons are loaded automatically from the static/icons/ folder.",
+                ),
+            ),
             # Required icon example - demonstrates required=True
             (
                 "required_icon",
@@ -220,6 +260,10 @@ class HomePage(Page):
     )
 
     content_panels = Page.content_panels + [
+        FieldPanel(
+            "directory_icon",
+            widget=_directory_icon_block.field.widget,
+        ),
         FieldPanel(
             "theme",
             widget=ThumbnailRadioSelect(

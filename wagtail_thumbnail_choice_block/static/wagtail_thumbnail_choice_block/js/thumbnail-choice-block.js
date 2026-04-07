@@ -16,8 +16,9 @@
             if (container.dataset.initialized) return;
             container.dataset.initialized = 'true';
 
-            // Get all radio options in this container
+            // Get all radio options and headings in this container
             const options = container.querySelectorAll('.thumbnail-radio-option');
+            const headings = container.querySelectorAll('.thumbnail-radio-heading');
             const filterInput = container.querySelector('.thumbnail-filter-input');
             const dropdown = container.querySelector('.thumbnail-dropdown');
             const noResultsMessage = container.querySelector('.thumbnail-no-results');
@@ -115,10 +116,11 @@
 
                         filterInput.removeAttribute('readonly');
                         filterInput.select();
-                        // Ensure all options are visible when opening
+                        // Ensure all options and headings are visible when opening
                         options.forEach(option => {
                             option.style.display = '';
                         });
+                        headings.forEach(h => { h.style.display = ''; });
                         if (noResultsMessage) {
                             noResultsMessage.style.display = 'none';
                         }
@@ -133,10 +135,11 @@
                     container.classList.remove('open');
                     filterInput.setAttribute('readonly', 'readonly');
 
-                    // Reset all options to visible
+                    // Reset all options and headings to visible
                     options.forEach(option => {
                         option.style.display = '';
                     });
+                    headings.forEach(h => { h.style.display = ''; });
                     if (noResultsMessage) {
                         noResultsMessage.style.display = 'none';
                     }
@@ -159,26 +162,76 @@
                 // Handle filtering when typing
                 filterInput.addEventListener('input', function(e) {
                     const filterValue = e.target.value.toLowerCase().trim();
-                    let visibleCount = 0;
 
-                    options.forEach(option => {
-                        const label = option.dataset.label || '';
+                    if (filterValue === '') {
+                        // Show everything
+                        options.forEach(o => { o.style.display = ''; });
+                        headings.forEach(h => { h.style.display = ''; });
+                        if (noResultsMessage) noResultsMessage.style.display = 'none';
+                        return;
+                    }
 
-                        if (filterValue === '' || label.includes(filterValue)) {
-                            option.style.display = '';
-                            visibleCount++;
-                        } else {
-                            option.style.display = 'none';
-                        }
+                    // 1. Determine which options match directly
+                    const optionVisible = new Map();
+                    options.forEach(opt => {
+                        optionVisible.set(opt, (opt.dataset.label || '').includes(filterValue));
                     });
 
-                    // Show/hide "no results" message
-                    if (noResultsMessage) {
-                        if (visibleCount === 0 && filterValue !== '') {
-                            noResultsMessage.style.display = 'block';
-                        } else {
-                            noResultsMessage.style.display = 'none';
+                    // 2. Walk DOM in order; a heading match reveals the heading + all descendants
+                    //    until a sibling heading of equal or lesser depth.
+                    const matchedHeadings = new Set();
+                    const allItems = Array.from(
+                        container.querySelectorAll('.thumbnail-radio-heading, .thumbnail-radio-option')
+                    );
+                    for (let i = 0; i < allItems.length; i++) {
+                        const item = allItems[i];
+                        if (item.classList.contains('thumbnail-radio-heading')) {
+                            const headingDepth = parseInt(item.dataset.depth, 10);
+                            if ((item.dataset.label || '').includes(filterValue)) {
+                                matchedHeadings.add(item);
+                                item.style.display = '';
+                                for (let j = i + 1; j < allItems.length; j++) {
+                                    const child = allItems[j];
+                                    const childDepth = parseInt(child.dataset.depth, 10);
+                                    if (child.classList.contains('thumbnail-radio-heading')
+                                            && childDepth <= headingDepth) break;
+                                    child.style.display = '';
+                                    if (child.classList.contains('thumbnail-radio-option')) {
+                                        optionVisible.set(child, true);
+                                    }
+                                }
+                            }
                         }
+                    }
+
+                    // 3. Apply option visibility
+                    options.forEach(opt => {
+                        opt.style.display = optionVisible.get(opt) ? '' : 'none';
+                    });
+
+                    // 4. Show/hide headings that weren't matched directly but have visible descendants
+                    headings.forEach(heading => {
+                        if (matchedHeadings.has(heading)) return;
+                        const depth = parseInt(heading.dataset.depth, 10);
+                        const idx = allItems.indexOf(heading);
+                        let anyChildVisible = false;
+                        for (let j = idx + 1; j < allItems.length; j++) {
+                            const child = allItems[j];
+                            if (child.classList.contains('thumbnail-radio-heading')
+                                    && parseInt(child.dataset.depth, 10) <= depth) break;
+                            if (child.classList.contains('thumbnail-radio-option')
+                                    && child.style.display !== 'none') {
+                                anyChildVisible = true;
+                                break;
+                            }
+                        }
+                        heading.style.display = anyChildVisible ? '' : 'none';
+                    });
+
+                    // 5. "No results" message
+                    const visibleCount = Array.from(options).filter(o => o.style.display !== 'none').length;
+                    if (noResultsMessage) {
+                        noResultsMessage.style.display = (visibleCount === 0) ? 'block' : 'none';
                     }
                 });
 

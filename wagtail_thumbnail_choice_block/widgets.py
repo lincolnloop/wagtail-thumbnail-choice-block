@@ -2,7 +2,7 @@
 Widget classes for Wagtail Thumbnail Choice Block.
 """
 
-from django.forms import RadioSelect
+from django.forms import RadioSelect, Widget
 from django.template.loader import render_to_string
 from django.utils import translation
 
@@ -65,10 +65,12 @@ class ThumbnailRadioSelect(RadioSelect):
         thumbnail_mapping=None,
         thumbnail_template_mapping=None,
         thumbnail_size=None,
+        tree_items=None,
     ):
         super().__init__(attrs, choices)
         self.thumbnail_mapping = thumbnail_mapping or {}
         self.thumbnail_template_mapping = thumbnail_template_mapping or {}
+        self._tree_items = tree_items
 
         if thumbnail_size is None:
             raise ValueError(
@@ -77,10 +79,103 @@ class ThumbnailRadioSelect(RadioSelect):
         self.thumbnail_size = thumbnail_size
 
     def get_context(self, name, value, attrs):
-        """Override to add thumbnail_size to the template context."""
-        context = super().get_context(name, value, attrs)
+        """Override to add thumbnail_size and tree_items to the template context.
+
+        We call Widget.get_context directly (skipping Select.get_context which
+        calls optgroups → create_option) because our template iterates over
+        tree_items built by _build_tree_context, not optgroups. Calling
+        Select.get_context would cause create_option to be invoked twice per
+        option — once via optgroups and once via _build_tree_context — doubling
+        any render_to_string calls for thumbnail_template_mapping entries.
+        """
+        context = Widget.get_context(self, name, value, attrs)
         context["widget"]["thumbnail_size"] = self.thumbnail_size
+        context["widget"]["tree_items"] = self._build_tree_context(name, value, attrs)
         return context
+
+    def _build_tree_context(self, name, value, attrs):
+        """
+        Build the flat list of heading/option dicts passed to the template.
+
+        Flat-choices mode (self._tree_items is None):
+            Iterates self.choices directly. The blank choice (if any) is already
+            at index 0 via _add_blank_choice; no headings are emitted.
+
+        Directory mode (self._tree_items is not None):
+            The tree was built from the raw directory scan (no blank choice).
+            If self.choices starts with ("", ...) a blank option is prepended at
+            depth 0 before iterating the tree items.
+
+        A running integer counter (option_index) is incremented for every option
+        and passed as the `index` argument to create_option so that Django generates
+        unique id attributes for each radio <input>.
+        """
+        # Build the full HTML attrs so create_option receives the widget id and
+        # can generate per-option ids (e.g. "my-widget_0", "my-widget_1", …).
+        full_attrs = self.build_attrs(self.attrs, attrs)
+
+        result = []
+        option_index = 0
+
+        if self._tree_items is None:
+            # Flat-choices mode: derive everything from self.choices
+            for choice_value, choice_label in self.choices:
+                selected = str(choice_value) == str(value)
+                option = self.create_option(
+                    name,
+                    choice_value,
+                    choice_label,
+                    selected,
+                    option_index,
+                    attrs=full_attrs,
+                )
+                option["depth"] = 0
+                result.append(option)
+                option_index += 1
+        else:
+            # Directory mode: prepend blank choice if present in self.choices
+            choices_list = list(self.choices)
+            if choices_list and choices_list[0][0] == "":
+                blank_value, blank_label = choices_list[0]
+                selected = str(blank_value) == str(value)
+                option = self.create_option(
+                    name,
+                    blank_value,
+                    blank_label,
+                    selected,
+                    option_index,
+                    attrs=full_attrs,
+                )
+                option["depth"] = 0
+                result.append(option)
+                option_index += 1
+
+            for item in self._tree_items:
+                if item["type"] == "heading":
+                    result.append(
+                        {
+                            "type": "heading",
+                            "label": item["label"],
+                            "depth": item["depth"],
+                        }
+                    )
+                else:
+                    item_value = item["value"]
+                    item_label = item["label"]
+                    selected = str(item_value) == str(value)
+                    option = self.create_option(
+                        name,
+                        item_value,
+                        item_label,
+                        selected,
+                        option_index,
+                        attrs=full_attrs,
+                    )
+                    option["depth"] = item.get("depth", 0)
+                    result.append(option)
+                    option_index += 1
+
+        return result
 
     def render(self, name, value, attrs=None, renderer=None):
         """
@@ -105,6 +200,15 @@ class ThumbnailRadioSelect(RadioSelect):
                     for k, v in self.thumbnail_template_mapping.items()
                 )
             )
+            tree_key = tuple(
+                (
+                    item["type"],
+                    item.get("label", ""),
+                    item.get("value", ""),
+                    item.get("depth", 0),
+                )
+                for item in (self._tree_items or [])
+            )
             key = (
                 name,
                 value,
@@ -113,6 +217,7 @@ class ThumbnailRadioSelect(RadioSelect):
                 thumbnail_mapping_key,
                 template_mapping_key,
                 translation.get_language(),
+                tree_key,
             )
             hash(key)  # verify the key is hashable before leaving the try block
         except TypeError:

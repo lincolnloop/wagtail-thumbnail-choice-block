@@ -2,8 +2,13 @@
 Tests for ThumbnailChoiceBlock.
 """
 
-from django.core.exceptions import ValidationError
-from django.test import TestCase
+import shutil
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.test import TestCase, override_settings
 
 from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
 from wagtail_thumbnail_choice_block.widgets import ThumbnailRadioSelect
@@ -98,21 +103,21 @@ class TestThumbnailChoiceBlock(TestCase):
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
                 </div>
                 <div class="thumbnail-dropdown">
-                    <label class="thumbnail-radio-option" data-label="---">
+                    <label class="thumbnail-radio-option" data-label="---" data-depth="0">
                         <input type="radio" name="test_field" value="">
                         <span class="thumbnail-wrapper">
                             <span class="thumbnail-placeholder"></span>
                         </span>
                         <span class="thumbnail-label">---</span>
                     </label>
-                    <label class="thumbnail-radio-option selected" data-label="option a">
+                    <label class="thumbnail-radio-option selected" data-label="option a" data-depth="0">
                         <input type="radio" name="test_field" value="a" checked>
                         <span class="thumbnail-wrapper">
                             <img src="/test/a.png" alt="Option A" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option A</span>
                     </label>
-                    <label class="thumbnail-radio-option" data-label="option b">
+                    <label class="thumbnail-radio-option" data-label="option b" data-depth="0">
                         <input type="radio" name="test_field" value="b">
                         <span class="thumbnail-wrapper">
                             <img src="/test/b.png" alt="Option B" class="thumbnail-image">
@@ -487,3 +492,352 @@ class TestThumbnailChoiceBlock(TestCase):
         blank_choices = [c for c in choices if c[0] == ""]
         assert len(blank_choices) == 1
         assert blank_choices[0] == ("", "Custom Empty")
+
+
+class TestThumbnailChoiceBlockDirectoryMode(TestCase):
+    """Tests for ThumbnailChoiceBlock with thumbnail_directory parameter."""
+
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        self.icons_dir = Path(self.tmp_dir) / "icons"
+        self.icons_dir.mkdir()
+        ThumbnailChoiceBlock._scan_cache.clear()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        ThumbnailChoiceBlock._scan_cache.clear()
+
+    def _make_block(self, directory="icons", **kwargs):
+        """Create a block with _find_static_directory patched to return self.icons_dir."""
+        with patch.object(
+            ThumbnailChoiceBlock,
+            "_find_static_directory",
+            return_value=self.icons_dir,
+        ):
+            block = ThumbnailChoiceBlock(
+                thumbnail_directory=directory, thumbnail_size=40, **kwargs
+            )
+        return block
+
+    # --- scanning ---
+
+    def test_scans_flat_directory(self):
+        """Icons in a directory become choices for the block."""
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+        (self.icons_dir / "moon.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        choices = list(block.field.choices)
+        values = [v for v, _ in choices]
+
+        assert "sun" in values
+        assert "moon" in values
+        assert "sun" in block.field.widget.thumbnail_mapping
+        assert "moon" in block.field.widget.thumbnail_mapping
+
+    def test_scans_nested_directories(self):
+        """Icons in a subdirectory become choices for the block, displayed under a heading."""
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left.svg").write_text("<svg/>")
+        (arrows / "right.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        tree = block.field.widget._tree_items
+
+        types = [item["type"] for item in tree]
+
+        # Assert that the items have a heading and 2 options.
+        assert "heading" in types
+        assert ["heading", "option", "option"] == types
+
+        # Assert that the heading is "Arrows".
+        heading = next(item for item in tree if item["type"] == "heading")
+        assert heading["label"] == "Arrows"
+        assert heading["depth"] == 0
+
+        # Assert that the optionss are the 2 SVGs created in this test.
+        option_values = [item["value"] for item in tree if item["type"] == "option"]
+        assert ["arrows/left", "arrows/right"] == option_values
+
+    def test_value_is_relative_path_without_extension(self):
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left_arrow.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        values = [v for v, _ in block.field.choices]
+        assert "arrows/left_arrow" in values
+
+    def test_thumbnail_url_uses_static_url(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        assert block.field.widget.thumbnail_mapping["sun"] == "/static/icons/sun.svg"
+
+    def test_thumbnail_url_nested(self):
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        assert (
+            block.field.widget.thumbnail_mapping["arrows/left"]
+            == "/static/icons/arrows/left.svg"
+        )
+
+    # --- label and sort ---
+
+    def test_default_label_fn_title_cases(self):
+        (self.icons_dir / "left_arrow.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        labels = {value: label for value, label in block.field.choices}
+        assert labels.get("left_arrow") == "Left Arrow"
+
+    def test_default_sort_key_alphabetical(self):
+        (self.icons_dir / "cherry.svg").write_text("<svg/>")
+        (self.icons_dir / "apple.svg").write_text("<svg/>")
+        (self.icons_dir / "banana.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        # Choices may start with blank; strip it and check order
+        values = [v for v, _ in block.field.choices if v]
+        assert values == ["apple", "banana", "cherry"]
+
+    def test_custom_label_fn(self):
+        (self.icons_dir / "star.svg").write_text("<svg/>")
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left.svg").write_text("<svg/>")
+
+        block = self._make_block(thumbnail_directory_label_fn=lambda stem: stem.upper())
+
+        labels = {value: label for value, label in block.field.choices if value}
+        assert labels["star"] == "STAR"
+        assert labels["arrows/left"] == "LEFT"
+
+        # Heading label also uses label_fn
+        headings = [
+            item for item in block.field.widget._tree_items if item["type"] == "heading"
+        ]
+        assert any(h["label"] == "ARROWS" for h in headings)
+
+    def test_custom_sort_key(self):
+        # reverse-alphabetical sort key
+        (self.icons_dir / "apple.svg").write_text("<svg/>")
+        (self.icons_dir / "banana.svg").write_text("<svg/>")
+        (self.icons_dir / "cherry.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_sort_key=lambda p: [-ord(c) for c in p.name]
+        )
+        values = [v for v, _ in block.field.choices if v]
+        assert values == ["cherry", "banana", "apple"]
+
+    # --- mutual exclusivity ---
+
+    def test_mutually_exclusive_with_choices(self):
+        """A ThumbnailChoiceBlock may not define thumbnail_directory and choices."""
+        with self.assertRaises(ValueError):
+            ThumbnailChoiceBlock(
+                thumbnail_directory="icons",
+                choices=[("a", "A")],
+                thumbnail_size=40,
+            )
+
+    def test_mutually_exclusive_with_thumbnails(self):
+        """A ThumbnailChoiceBlock may not define thumbnail_directory and thumbnails."""
+        with self.assertRaises(ValueError):
+            ThumbnailChoiceBlock(
+                thumbnail_directory="icons",
+                thumbnails={"a": "/a.svg"},
+                thumbnail_size=40,
+            )
+
+    def test_mutually_exclusive_with_thumbnail_templates(self):
+        """A ThumbnailChoiceBlock may not define thumbnail_directory and thumbnail_templates."""
+        with self.assertRaises(ValueError):
+            ThumbnailChoiceBlock(
+                thumbnail_directory="icons",
+                thumbnail_templates={"a": "icon.html"},
+                thumbnail_size=40,
+            )
+
+    # --- auto_reload ---
+
+    def test_auto_reload_false_caches_scan(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        scan_calls = []
+        original_scan = ThumbnailChoiceBlock._scan_directory
+
+        def counting_scan(self_inner):
+            result = original_scan(self_inner)
+            scan_calls.append(1)
+            return result
+
+        with patch.object(
+            ThumbnailChoiceBlock, "_find_static_directory", return_value=self.icons_dir
+        ):
+            with patch.object(ThumbnailChoiceBlock, "_scan_directory", counting_scan):
+                block1 = ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_auto_reload=False,
+                )
+                block1.get_form_state("")
+                block2 = ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_auto_reload=False,
+                )
+                block2.get_form_state("")
+
+        assert len(scan_calls) == 1
+
+    def test_auto_reload_true_rescans_on_render(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        scan_calls = []
+        original_scan = ThumbnailChoiceBlock._scan_directory
+
+        def counting_scan(self_inner):
+            result = original_scan(self_inner)
+            scan_calls.append(1)
+            return result
+
+        with patch.object(
+            ThumbnailChoiceBlock, "_find_static_directory", return_value=self.icons_dir
+        ):
+            with patch.object(ThumbnailChoiceBlock, "_scan_directory", counting_scan):
+                block = ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_auto_reload=True,
+                )
+
+                # Add a new file before the rescan
+                (self.icons_dir / "moon.svg").write_text("<svg/>")
+
+                block.get_form_state("")
+
+        assert len(scan_calls) == 2
+
+        # Widget should be updated with the new file
+        option_values = [
+            item["value"]
+            for item in block.field.widget._tree_items
+            if item["type"] == "option"
+        ]
+        assert "moon" in option_values
+        assert "moon" in block.field.widget.thumbnail_mapping
+
+        # Blank choice present since required=False (default)
+        assert block.field.widget.choices[0] == ("", "---")
+
+    # --- filtering ---
+
+    def test_skips_hidden_files_and_dirs(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+        (self.icons_dir / ".hidden.svg").write_text("<svg/>")
+        hidden_dir = self.icons_dir / ".hidden"
+        hidden_dir.mkdir()
+        (hidden_dir / "visible.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        values = [v for v, _ in block.field.choices if v]
+        assert values == ["sun"]
+
+    def test_skips_non_image_extensions(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+        (self.icons_dir / "readme.txt").write_text("text")
+        (self.icons_dir / "data.json").write_text("{}")
+        (self.icons_dir / "script.py").write_text("")
+
+        block = self._make_block()
+        values = [v for v, _ in block.field.choices if v]
+        assert values == ["sun"]
+
+    def test_empty_subdirectory_emits_no_heading(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+        empty_dir = self.icons_dir / "empty"
+        empty_dir.mkdir()
+        # Only non-image files inside
+        (empty_dir / "readme.txt").write_text("text")
+
+        block = self._make_block()
+        headings = [
+            item for item in block.field.widget._tree_items if item["type"] == "heading"
+        ]
+        heading_labels = [h["label"] for h in headings]
+        assert "Empty" not in heading_labels
+
+    # --- blank choice ---
+
+    def test_blank_choice_added_when_not_required(self):
+        """When the field is not required, a blank choice is automatically added."""
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        block = self._make_block(required=False)
+        choices = list(block.field.choices)
+        assert choices[0] == ("", "---")
+
+    def test_required_true_no_blank_choice(self):
+        """When the field is required, a blank choice is NOT automatically added."""
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        block = self._make_block(required=True)
+        choices = list(block.field.choices)
+        assert ("", "---") not in choices
+        assert choices[0][0] == "sun"
+
+    # --- finder discovery ---
+
+    def test_finds_directory_via_staticfiles_finders(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        # Simulate AppDirectoriesFinder: has 'storages' with a storage whose location
+        # is the parent of the thumbnail_directory.
+        from unittest.mock import MagicMock
+
+        mock_storage = MagicMock()
+        mock_storage.location = str(self.tmp_dir)
+        mock_finder = MagicMock()
+        mock_finder.storages = {"app": mock_storage}
+        mock_finder.locations = []
+
+        with patch(
+            "django.contrib.staticfiles.finders.get_finders", return_value=[mock_finder]
+        ):
+            with override_settings(STATIC_ROOT="/nonexistent"):
+                block = ThumbnailChoiceBlock(
+                    thumbnail_directory="icons", thumbnail_size=40
+                )
+
+        values = [v for v, _ in block.field.choices if v]
+        assert "sun" in values
+
+    def test_directory_not_found_raises(self):
+        with patch("django.contrib.staticfiles.finders.get_finders", return_value=[]):
+            with override_settings(STATIC_ROOT="/nonexistent"):
+                with self.assertRaises(ImproperlyConfigured):
+                    ThumbnailChoiceBlock(thumbnail_directory="icons", thumbnail_size=40)
+
+    # --- widget integration ---
+
+    def test_tree_items_on_widget(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        tree = block.field.widget._tree_items
+
+        assert tree is not None
+        assert any(item["type"] == "heading" for item in tree)
+        assert any(item["type"] == "option" and item["value"] == "sun" for item in tree)
+        assert any(
+            item["type"] == "option" and item["value"] == "arrows/left" for item in tree
+        )

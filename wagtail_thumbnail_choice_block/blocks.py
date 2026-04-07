@@ -2,12 +2,24 @@
 Block classes for Wagtail Thumbnail Choice Block.
 """
 
+import posixpath
+from pathlib import Path
+
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from wagtail import blocks
 
 from .widgets import ThumbnailRadioSelect
 
+IMAGE_EXTENSIONS = {".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp"}
+
 
 class ThumbnailChoiceBlock(blocks.ChoiceBlock):
+    # Class-level cache keyed by thumbnail_directory string. Populated the first
+    # time a given directory is scanned (auto_reload=False). Avoids redundant
+    # filesystem walks when many block instances share the same directory (e.g.
+    # multiple fields on the same page model or across Telepath serialisation).
+    _scan_cache: dict = {}
     """
     A Wagtail ChoiceBlock that displays thumbnail images for each choice.
 
@@ -107,6 +119,17 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
             )
         ```
 
+    Example (directory-based choices):
+        ```python
+        from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+
+        class MySettings(blocks.StructBlock):
+            icon = ThumbnailChoiceBlock(
+                thumbnail_directory="icons",
+                thumbnail_size=40,
+            )
+        ```
+
     Args:
         choices: List of (value, label) tuples for the choices, or a callable
                  that returns such a list
@@ -116,6 +139,17 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
                             - A string (template path), or
                             - A dict with 'template' (path) and 'context' (dict) keys
                             Can also be a callable that returns such a dictionary
+        thumbnail_directory: Path relative to a staticfiles-findable location
+                            (app static/, STATICFILES_DIRS, or STATIC_ROOT).
+                            Mutually exclusive with choices, thumbnails, and
+                            thumbnail_templates.
+        thumbnail_directory_auto_reload: When True (and thumbnail_directory is set), re-scan the
+                    thumbnail_directory on each get_form_state call. Useful
+                    in development when adding new files without restarting the server.
+        thumbnail_directory_sort_key: Callable(pathlib.Path) -> sort key for ordering files and
+                 directories. Defaults to case-insensitive filename sort.
+        thumbnail_directory_label_fn: Callable(str) -> str for generating labels from file/directory
+                 stems. Defaults to replacing _/- with spaces and title-casing.
         **kwargs: Additional arguments passed to ChoiceBlock
 
     Please note: if you are using thumbnail_templates, the Wagtail interface
@@ -135,24 +169,177 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         thumbnail_templates=None,
         thumbnail_size=40,
         required=False,
+        thumbnail_directory=None,
+        thumbnail_directory_auto_reload=False,
+        thumbnail_directory_sort_key=None,
+        thumbnail_directory_label_fn=None,
         **kwargs,
     ):
-        # Store the original choices, thumbnails, and thumbnail_templates (may be callable)
+        if thumbnail_directory is not None and any(
+            [choices, thumbnails, thumbnail_templates]
+        ):
+            raise ValueError(
+                "'thumbnail_directory' is mutually exclusive with 'choices', 'thumbnails', "
+                "and 'thumbnail_templates'."
+            )
+
+        # Store sources (may be callable in non-directory mode)
         self._choices_source = choices
         self._thumbnails_source = thumbnails
         self._thumbnail_templates_source = thumbnail_templates
         self._thumbnail_size = thumbnail_size
         self._required = required
+        self._thumbnail_directory = thumbnail_directory
+        self._thumbnail_directory_auto_reload = thumbnail_directory_auto_reload
+        self._thumbnail_directory_sort_key = (
+            thumbnail_directory_sort_key or self._default_sort_key
+        )
+        self._thumbnail_directory_label_fn = (
+            thumbnail_directory_label_fn or self._default_label_fn
+        )
 
-        # For initialization, we need to resolve callables to get actual choices
-        # This is needed for the parent ChoiceBlock's validation
-        resolved_choices = self._resolve_callable(choices)
+        if self._thumbnail_directory:
+            if (
+                not self._thumbnail_directory_auto_reload
+                and self._thumbnail_directory in ThumbnailChoiceBlock._scan_cache
+            ):
+                resolved_choices, thumbnail_map, tree_items = (
+                    ThumbnailChoiceBlock._scan_cache[self._thumbnail_directory]
+                )
+            else:
+                resolved_choices, thumbnail_map, tree_items = self._scan_directory()
+                if not self._thumbnail_directory_auto_reload:
+                    ThumbnailChoiceBlock._scan_cache[self._thumbnail_directory] = (
+                        resolved_choices,
+                        thumbnail_map,
+                        tree_items,
+                    )
+            self._tree_items = tree_items
+            self._thumbnails_source = thumbnail_map
+            self._choices_source = (
+                resolved_choices  # store raw (no blank) for bookkeeping
+            )
+        else:
+            self._tree_items = None
+            resolved_choices = self._resolve_callable(choices)
 
-        # Add blank choice if field is not required
+        # Both paths converge here
         resolved_choices = self._add_blank_choice(resolved_choices, required)
-
-        # Don't pass widget in kwargs yet - we'll override get_form_state
         super().__init__(choices=resolved_choices, required=required, **kwargs)
+
+    @staticmethod
+    def _default_label_fn(stem: str) -> str:
+        """'left_arrow' -> 'Left Arrow'"""
+        return stem.replace("_", " ").replace("-", " ").title()
+
+    @staticmethod
+    def _default_sort_key(path) -> str:
+        return path.name.lower()
+
+    def _find_static_directory(self) -> Path:
+        """
+        Locate thumbnail_directory on the filesystem via staticfiles finders,
+        falling back to STATIC_ROOT for production deployments.
+
+        Note: Only Django's built-in AppDirectoriesFinder and FileSystemFinder are
+        actively searched via their internal 'storages' and 'locations' attributes.
+        These are not part of Django's public staticfiles API; getattr with safe
+        defaults is intentional — if a future Django version renames them, or a
+        custom finder lacks them, the finder is silently skipped rather than
+        crashing. STATIC_ROOT remains the guaranteed fallback.
+
+        STATICFILES_DIRS entries with a URL prefix (e.g. [('myprefix', '/path/')])
+        are not supported.
+        """
+        from django.contrib.staticfiles.finders import get_finders
+
+        for finder in get_finders():
+            for storage in getattr(finder, "storages", {}).values():
+                loc = getattr(storage, "location", None)
+                if loc:
+                    candidate = Path(loc) / self._thumbnail_directory
+                    if candidate.is_dir():
+                        return candidate
+            for _prefix, root in getattr(finder, "locations", []):
+                candidate = Path(root) / self._thumbnail_directory
+                if candidate.is_dir():
+                    return candidate
+
+        # Production fallback: STATIC_ROOT
+        static_root = getattr(settings, "STATIC_ROOT", None)
+        if static_root:
+            candidate = Path(static_root) / self._thumbnail_directory
+            if candidate.is_dir():
+                return candidate
+
+        raise ImproperlyConfigured(
+            f"ThumbnailChoiceBlock: thumbnail_directory '{self._thumbnail_directory}' not found "
+            f"in any staticfiles location or STATIC_ROOT."
+        )
+
+    def _scan_directory(self) -> tuple:
+        """
+        Walk self._thumbnail_directory, located via staticfiles finders (STATIC_ROOT fallback).
+
+        Returns:
+            choices       — [(value, label), ...] for field validation
+            thumbnail_map — {value: url, ...}
+            tree_items    — [{"type": "heading"|"option", "label": str,
+                              "depth": int, "value": str,
+                              "thumbnail_url": str}, ...]
+        """
+        root = self._find_static_directory()
+        static_url = getattr(settings, "STATIC_URL", "/static/").rstrip("/")
+        dir_prefix = f"{static_url}/{self._thumbnail_directory}"
+
+        choices = []
+        thumbnail_map = {}
+        tree_items = []
+
+        def walk(path, depth, rel_parts):
+            local_items = []
+            local_choices = []
+            local_thumbnail_map = {}
+
+            entries = sorted(path.iterdir(), key=self._thumbnail_directory_sort_key)
+            for entry in entries:
+                if entry.name.startswith("."):
+                    continue
+                if entry.is_dir():
+                    sub_items, sub_choices, sub_map = walk(
+                        entry, depth + 1, rel_parts + [entry.name]
+                    )
+                    if sub_items:  # only emit heading if directory has descendants
+                        heading_label = self._thumbnail_directory_label_fn(entry.name)
+                        local_items.append(
+                            {"type": "heading", "label": heading_label, "depth": depth}
+                        )
+                        local_items.extend(sub_items)
+                        local_choices.extend(sub_choices)
+                        local_thumbnail_map.update(sub_map)
+                elif entry.is_file() and entry.suffix.lower() in IMAGE_EXTENSIONS:
+                    stem = entry.stem
+                    value_parts = rel_parts + [stem]
+                    value = posixpath.join(*value_parts)
+                    label = self._thumbnail_directory_label_fn(stem)
+                    rel_with_ext = posixpath.join(*(rel_parts + [entry.name]))
+                    thumbnail_url = f"{dir_prefix}/{rel_with_ext}"
+                    local_items.append(
+                        {
+                            "type": "option",
+                            "label": label,
+                            "depth": depth,
+                            "value": value,
+                            "thumbnail_url": thumbnail_url,
+                        }
+                    )
+                    local_choices.append((value, label))
+                    local_thumbnail_map[value] = thumbnail_url
+
+            return local_items, local_choices, local_thumbnail_map
+
+        tree_items, choices, thumbnail_map = walk(root, depth=0, rel_parts=[])
+        return choices, thumbnail_map, tree_items
 
     def _resolve_callable(self, value):
         """
@@ -199,28 +386,42 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         Override to ensure we have fresh choices and thumbnails when rendering the form.
         This is called when the block is rendered in the admin interface.
         """
-        # Resolve choices, thumbnails, and thumbnail_templates at render time
-        resolved_choices = self._resolve_callable(self._choices_source)
-        resolved_thumbnails = self._resolve_callable(self._thumbnails_source) or {}
-        resolved_thumbnail_templates = (
-            self._resolve_callable(self._thumbnail_templates_source) or {}
-        )
+        if self._thumbnail_directory and self._thumbnail_directory_auto_reload:
+            choices, thumbnail_map, tree_items = self._scan_directory()
+            choices_with_blank = self._add_blank_choice(choices, self._required)
+            self._tree_items = tree_items
+            self._thumbnails_source = thumbnail_map
+            self._choices_source = choices  # store raw (without blank) for consistency
+            # Push changes to the already-constructed widget
+            self.field.widget._tree_items = tree_items
+            self.field.widget.choices = choices_with_blank
+            self.field.widget.thumbnail_mapping = thumbnail_map
+            self.field.choices = choices_with_blank
+        else:
+            # Resolve choices, thumbnails, and thumbnail_templates at render time
+            resolved_choices = self._resolve_callable(self._choices_source)
+            resolved_thumbnails = self._resolve_callable(self._thumbnails_source) or {}
+            resolved_thumbnail_templates = (
+                self._resolve_callable(self._thumbnail_templates_source) or {}
+            )
 
-        # Add blank choice if field is not required
-        resolved_choices = self._add_blank_choice(resolved_choices, self._required)
+            # Add blank choice if field is not required
+            resolved_choices = self._add_blank_choice(resolved_choices, self._required)
 
-        # Update the field's choices if they've changed
-        if resolved_choices is not None:
-            self.field.choices = resolved_choices
-            self.field.widget.choices = resolved_choices
+            # Update the field's choices if they've changed
+            if resolved_choices is not None:
+                self.field.choices = resolved_choices
+                self.field.widget.choices = resolved_choices
 
-        # Update the thumbnail mapping in the widget
-        if hasattr(self.field.widget, "thumbnail_mapping"):
-            self.field.widget.thumbnail_mapping = resolved_thumbnails
+            # Update the thumbnail mapping in the widget
+            if hasattr(self.field.widget, "thumbnail_mapping"):
+                self.field.widget.thumbnail_mapping = resolved_thumbnails
 
-        # Update the thumbnail template mapping in the widget
-        if hasattr(self.field.widget, "thumbnail_template_mapping"):
-            self.field.widget.thumbnail_template_mapping = resolved_thumbnail_templates
+            # Update the thumbnail template mapping in the widget
+            if hasattr(self.field.widget, "thumbnail_template_mapping"):
+                self.field.widget.thumbnail_template_mapping = (
+                    resolved_thumbnail_templates
+                )
 
         return super().get_form_state(value)
 
@@ -229,15 +430,23 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         Override get_field to create widget with current thumbnails.
         This is called by the parent ChoiceBlock during initialization.
         """
-        # Resolve thumbnails and thumbnail_templates at field creation time
-        resolved_thumbnails = self._resolve_callable(self._thumbnails_source) or {}
-        resolved_thumbnail_templates = (
-            self._resolve_callable(self._thumbnail_templates_source) or {}
-        )
+        if self._thumbnail_directory:
+            # Directory mode: thumbnail_map is already in self._thumbnails_source (a dict)
+            resolved_thumbnails = self._thumbnails_source or {}
+            resolved_thumbnail_templates = {}
+            resolved_choices = self._add_blank_choice(
+                self._choices_source, self._required
+            )
+        else:
+            # Resolve thumbnails and thumbnail_templates at field creation time
+            resolved_thumbnails = self._resolve_callable(self._thumbnails_source) or {}
+            resolved_thumbnail_templates = (
+                self._resolve_callable(self._thumbnail_templates_source) or {}
+            )
 
-        # Resolve choices and add blank choice if not required
-        resolved_choices = self._resolve_callable(self._choices_source)
-        resolved_choices = self._add_blank_choice(resolved_choices, self._required)
+            # Resolve choices and add blank choice if not required
+            resolved_choices = self._resolve_callable(self._choices_source)
+            resolved_choices = self._add_blank_choice(resolved_choices, self._required)
 
         # Update the stored choices with the resolved ones
         # This must happen before calling parent's get_field
@@ -250,6 +459,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
             thumbnail_mapping=resolved_thumbnails,
             thumbnail_template_mapping=resolved_thumbnail_templates,
             thumbnail_size=self._thumbnail_size,
+            tree_items=self._tree_items,
         )
 
         # Pass the widget to parent's get_field

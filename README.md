@@ -122,6 +122,80 @@ class ContentBlock(blocks.StructBlock):
     )
 ```
 
+### Directory-Based Choices
+
+When your choices are a set of image files, you can point `ThumbnailChoiceBlock` directly at a static-files directory and let it build the choices and thumbnail URLs automatically.
+
+```python
+from wagtail import blocks
+from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+
+class IconBlock(blocks.StructBlock):
+    icon = ThumbnailChoiceBlock(
+        thumbnail_directory="icons",
+        thumbnail_size=40,
+        label="Icon",
+        help_text="Icons are loaded automatically from the static/icons/ folder.",
+    )
+```
+
+The block scans the directory recursively. Each image file becomes a choice; subdirectory names become visual group headings in the Wagtail admin picker. For example, a layout like:
+
+```
+static/icons/
+  sun.svg
+  moon.svg
+  arrows/
+    left.svg
+    right.svg
+  shapes/
+    circles/
+      circle.svg
+    squares/
+      square.svg
+```
+
+produces a picker with a top-level group "Arrows" containing "Left" and "Right", a nested group "Shapes / Circles", and so on.
+
+**Stored value format**
+
+The value saved to the database is the relative path from the directory root, without the file extension (e.g. `arrows/left`). This keeps values short and independent of `STATIC_URL`.
+
+> **Migration concern:** renaming or moving files changes the stored value. Existing pages that hold the old value will see it displayed as "unavailable" in the admin until a new option is selected and saved.
+
+#### Prerequisites
+
+- `thumbnail_directory` must be a path relative to a staticfiles-findable location: an app's `static/` folder, an entry in `STATICFILES_DIRS`, or `STATIC_ROOT`.
+- Django's built-in `AppDirectoriesFinder` and `FileSystemFinder` are searched automatically; `collectstatic` is **not** required in development.
+- Custom staticfiles finders are **not** searched. If your project uses one, ensure the directory is also present under `STATIC_ROOT`.
+- `STATICFILES_DIRS` entries with a URL prefix (e.g. `[('myprefix', '/path/')]`) are **not** supported.
+- When `thumbnail_directory_auto_reload` is `True`, new thumbnails can be used immediately, but a server restart is required to pick up new files when `thumbnail_directory_auto_reload=False` (the default).
+
+#### Customising labels and sort order
+
+By default, filenames are title-cased (`left_arrow.svg` → `"Left Arrow"`) and choices are sorted alphabetically. Both behaviours are overridable:
+
+```python
+icon = ThumbnailChoiceBlock(
+    thumbnail_directory="icons",
+    thumbnail_directory_label_fn=lambda stem: stem.upper(),          # custom label from stem
+    thumbnail_directory_sort_key=lambda path: path.stat().st_mtime,  # sort by modification time
+)
+```
+
+#### Live reload in development
+
+Set `thumbnail_directory_auto_reload=True` to re-scan the directory on every admin render, so newly added files appear without restarting the server:
+
+```python
+icon = ThumbnailChoiceBlock(
+    thumbnail_directory="icons",
+    thumbnail_directory_auto_reload=True,   # re-scan on each form render (dev only)
+)
+```
+
+> **Note:** `thumbnail_directory` is mutually exclusive with `choices`, `thumbnails`, and `thumbnail_templates`. Passing both raises a `ValueError` at startup.
+
 ### Static Or Dynamic Thumbnail Templates
 
 Sometimes, it may be preferable to use a template file for thumbnails. For example, if you are using sprites and do not have a separate file for each thumbnail, but are using a single HTML template for your thumbnails, you may define `thumbnail_templates` and pass relevant context for each thumbnail. You may do so statically
@@ -191,10 +265,14 @@ Extends Wagtail's `ChoiceBlock` with thumbnail support.
 
 **Parameters:**
 
-- `choices` (required): List of (value, label) tuples for the choice options, or a callable that returns such a list
+- `choices`: List of (value, label) tuples for the choice options, or a callable that returns such a list. Required unless `thumbnail_directory` is set.
 - `thumbnails`: Dictionary mapping choice values to thumbnail image URLs/paths, or a callable that returns such a dictionary
 - `thumbnail_templates`: Dictionary mapping choice values to template configurations (either a template path string or a dict with 'template' and 'context' keys), or a callable that returns such a dictionary
 - `thumbnail_size`: Size of thumbnails in pixels (default: 40). The preview thumbnail in the input is automatically scaled proportionally (60%) and constrained between 20-32px
+- `thumbnail_directory`: Path to a directory of image files, relative to a staticfiles-findable location. The block scans the directory at startup and derives choices and thumbnail URLs automatically. Mutually exclusive with `choices`, `thumbnails`, and `thumbnail_templates`.
+- `thumbnail_directory_auto_reload`: Re-scan `thumbnail_directory` on every form render instead of only at startup (default: `False`). Useful in development when adding new files without restarting the server.
+- `thumbnail_directory_sort_key`: Callable `(pathlib.Path) -> sort key` used to order files within each directory. Default: `path.name.lower()` (alphabetical, case-insensitive).
+- `thumbnail_directory_label_fn`: Callable `(str stem) -> str` used to generate a display label from a filename stem. Default: replaces `_` and `-` with spaces, then applies `str.title()` (e.g. `left_arrow` → `"Left Arrow"`).
 - `default`: Default selected value
 - `**kwargs`: Any additional arguments supported by Wagtail's ChoiceBlock
 
@@ -209,6 +287,7 @@ The underlying Django widget. Can be used directly in Django forms.
 - `thumbnail_mapping`: Dictionary mapping choice values to thumbnail URLs/paths
 - `thumbnail_template_mapping`: Dictionary mapping choice values to template configurations
 - `thumbnail_size`: Size of thumbnails in pixels (default: 40)
+- `tree_items`: Pre-built list of heading/option dicts for directory mode (populated automatically by `ThumbnailChoiceBlock` when `thumbnail_directory` is used; not needed when constructing the widget directly)
 
 ## Thumbnail Images
 

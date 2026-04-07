@@ -80,14 +80,14 @@ class TestThumbnailRadioSelect(TestCase):
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
                 </div>
                 <div class="thumbnail-dropdown">
-                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="option a">
+                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="option a" data-depth="0">
                         <input type="radio" name="test_field" value="a" id="test-id_0" checked>
                         <span class="thumbnail-wrapper">
                             <img src="/test/a.png" alt="Option A" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option A</span>
                     </label>
-                    <label for="test-id_1" class="thumbnail-radio-option" data-label="option b">
+                    <label for="test-id_1" class="thumbnail-radio-option" data-label="option b" data-depth="0">
                         <input type="radio" name="test_field" value="b" id="test-id_1">
                         <span class="thumbnail-wrapper">
                             <img src="/test/b.png" alt="Option B" class="thumbnail-image">
@@ -251,7 +251,7 @@ class TestThumbnailRadioSelect(TestCase):
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
                 </div>
                 <div class="thumbnail-dropdown">
-                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="star">
+                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="star" data-depth="0">
                         <input type="radio" name="test_field" value="star" id="test-id_0" checked>
                         <span class="thumbnail-wrapper">
                             {mock_template_value}
@@ -306,7 +306,7 @@ class TestThumbnailRadioSelect(TestCase):
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
                 </div>
                 <div class="thumbnail-dropdown">
-                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="check">
+                    <label for="test-id_0" class="thumbnail-radio-option selected" data-label="check" data-depth="0">
                         <input type="radio" name="test_field" value="check" id="test-id_0" checked>
                         <span class="thumbnail-wrapper">
                             {mock_template_value}
@@ -391,7 +391,7 @@ class TestThumbnailRadioSelect(TestCase):
                     <input type="text" class="thumbnail-filter-input" placeholder="Select an option..." autocomplete="off" readonly>
                 </div>
                 <div class="thumbnail-dropdown">
-                    <label for="test-id_0" class="thumbnail-radio-option" data-label="star">
+                    <label for="test-id_0" class="thumbnail-radio-option" data-label="star" data-depth="0">
                         <input type="radio" name="test_field" value="star" id="test-id_0">
                         <span class="thumbnail-wrapper">
                             <span class="thumbnail-placeholder"></span>
@@ -652,3 +652,191 @@ class TestThumbnailRadioSelectTreeItems(TestCase):
         # Selected state is on check, not star.
         assert 'class="thumbnail-radio-option selected" data-label="check"' in html
         assert 'class="thumbnail-radio-option" data-label="star"' in html
+
+    def test_tree_items_none_falls_back_to_flat(self):
+        """When tree_items=None, _build_tree_context generates a flat list from self.choices — no headings."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Alpha"), ("b", "Beta")],
+            thumbnail_mapping={"a": "/a.svg", "b": "/b.svg"},
+            thumbnail_size=40,
+            tree_items=None,
+        )
+
+        context = widget.get_context("field", "a", attrs={"id": "w"})
+        tree = context["widget"]["tree_items"]
+
+        # No heading items at all.
+        assert all(item["type"] != "heading" for item in tree)
+
+        # Both options are present.
+        values = [str(item["value"]) for item in tree]
+        assert "a" in values
+        assert "b" in values
+
+    def test_blank_choice_is_depth0_option_no_heading(self):
+        """In directory mode a blank choice from _add_blank_choice is emitted as a depth-0 option with no heading before it."""
+        tree_items = [
+            {
+                "type": "option",
+                "label": "Sun",
+                "depth": 0,
+                "value": "sun",
+                "thumbnail_url": "/static/icons/sun.svg",
+            },
+        ]
+        widget = ThumbnailRadioSelect(
+            choices=[("", "---"), ("sun", "Sun")],
+            thumbnail_mapping={"sun": "/static/icons/sun.svg"},
+            thumbnail_size=40,
+            tree_items=tree_items,
+        )
+
+        context = widget.get_context("field", "", attrs={"id": "w"})
+        tree = context["widget"]["tree_items"]
+
+        # First item must not be a heading.
+        assert tree[0]["type"] != "heading"
+        # First item must be the blank choice.
+        assert str(tree[0]["value"]) == ""
+        assert tree[0]["depth"] == 0
+
+        # No heading may appear before any option.
+        first_heading_idx = next(
+            (i for i, item in enumerate(tree) if item["type"] == "heading"), None
+        )
+        first_option_idx = next(
+            (i for i, item in enumerate(tree) if item["type"] != "heading"), None
+        )
+        if first_heading_idx is not None and first_option_idx is not None:
+            assert first_option_idx < first_heading_idx
+
+    def test_tree_items_produces_headings_in_context(self):
+        """Heading dicts in tree_items are propagated to the template context."""
+        tree_items = [
+            {"type": "heading", "label": "Arrows", "depth": 0},
+            {
+                "type": "option",
+                "label": "Left",
+                "depth": 0,
+                "value": "arrows/left",
+                "thumbnail_url": "/static/icons/arrows/left.svg",
+            },
+        ]
+        widget = ThumbnailRadioSelect(
+            choices=[("arrows/left", "Left")],
+            thumbnail_mapping={"arrows/left": "/static/icons/arrows/left.svg"},
+            thumbnail_size=40,
+            tree_items=tree_items,
+        )
+
+        context = widget.get_context("field", None, attrs={"id": "w"})
+        tree = context["widget"]["tree_items"]
+
+        headings = [item for item in tree if item["type"] == "heading"]
+        assert len(headings) == 1
+        assert headings[0]["label"] == "Arrows"
+        assert headings[0]["depth"] == 0
+
+    def test_heading_depth_in_context(self):
+        """Nested heading depth values are preserved through _build_tree_context."""
+        tree_items = [
+            {"type": "heading", "label": "Shapes", "depth": 0},
+            {"type": "heading", "label": "Circles", "depth": 1},
+            {
+                "type": "option",
+                "label": "Circle",
+                "depth": 1,
+                "value": "shapes/circles/circle",
+                "thumbnail_url": "/static/icons/shapes/circles/circle.svg",
+            },
+        ]
+        widget = ThumbnailRadioSelect(
+            choices=[("shapes/circles/circle", "Circle")],
+            thumbnail_mapping={
+                "shapes/circles/circle": "/static/icons/shapes/circles/circle.svg"
+            },
+            thumbnail_size=40,
+            tree_items=tree_items,
+        )
+
+        context = widget.get_context("field", None, attrs={"id": "w"})
+        tree = context["widget"]["tree_items"]
+
+        headings = [item for item in tree if item["type"] == "heading"]
+        depths = [h["depth"] for h in headings]
+        assert 0 in depths
+        assert 1 in depths
+
+    def test_cache_key_differs_with_different_tree(self):
+        """Same choices/thumbnails but different heading labels → different cache keys → different cached HTML."""
+        tree1 = [
+            {"type": "heading", "label": "Arrows", "depth": 0},
+            {
+                "type": "option",
+                "label": "Left",
+                "depth": 0,
+                "value": "left",
+                "thumbnail_url": "/left.svg",
+            },
+        ]
+        tree2 = [
+            {"type": "heading", "label": "Shapes", "depth": 0},  # different label
+            {
+                "type": "option",
+                "label": "Left",
+                "depth": 0,
+                "value": "left",
+                "thumbnail_url": "/left.svg",
+            },
+        ]
+
+        widget1 = ThumbnailRadioSelect(
+            choices=[("left", "Left")],
+            thumbnail_mapping={"left": "/left.svg"},
+            thumbnail_size=40,
+            tree_items=tree1,
+        )
+        widget2 = ThumbnailRadioSelect(
+            choices=[("left", "Left")],
+            thumbnail_mapping={"left": "/left.svg"},
+            thumbnail_size=40,
+            tree_items=tree2,
+        )
+
+        html1 = widget1.render("field", None, attrs={"id": "w"})
+        html2 = widget2.render("field", None, attrs={"id": "w"})
+
+        assert len(ThumbnailRadioSelect._render_cache) == 2
+        assert html1 != html2
+
+    def test_cache_key_same_with_identical_tree(self):
+        """Identical tree_items on two widget instances → single cache entry → identical HTML."""
+        tree = [
+            {"type": "heading", "label": "Arrows", "depth": 0},
+            {
+                "type": "option",
+                "label": "Left",
+                "depth": 0,
+                "value": "left",
+                "thumbnail_url": "/left.svg",
+            },
+        ]
+
+        widget1 = ThumbnailRadioSelect(
+            choices=[("left", "Left")],
+            thumbnail_mapping={"left": "/left.svg"},
+            thumbnail_size=40,
+            tree_items=tree,
+        )
+        widget2 = ThumbnailRadioSelect(
+            choices=[("left", "Left")],
+            thumbnail_mapping={"left": "/left.svg"},
+            thumbnail_size=40,
+            tree_items=tree,
+        )
+
+        html1 = widget1.render("field", None, attrs={"id": "w"})
+        html2 = widget2.render("field", None, attrs={"id": "w"})
+
+        assert len(ThumbnailRadioSelect._render_cache) == 1
+        assert html1 == html2

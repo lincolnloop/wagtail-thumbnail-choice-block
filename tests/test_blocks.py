@@ -2,6 +2,7 @@
 Tests for ThumbnailChoiceBlock.
 """
 
+import re
 import shutil
 import tempfile
 from pathlib import Path
@@ -12,6 +13,10 @@ from django.test import TestCase, override_settings
 
 from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
 from wagtail_thumbnail_choice_block.widgets import ThumbnailRadioSelect
+
+
+def value_fn_upper(p):
+    return p.upper()
 
 
 class TestThumbnailChoiceBlock(TestCase):
@@ -493,6 +498,17 @@ class TestThumbnailChoiceBlock(TestCase):
         assert len(blank_choices) == 1
         assert blank_choices[0] == ("", "Custom Empty")
 
+    def test_get_thumbnail_url_works_with_callable_thumbnails(self):
+        def get_thumbnails():
+            return {"star": "/static/star.svg"}
+
+        block = ThumbnailChoiceBlock(
+            choices=[("star", "Star")],
+            thumbnails=get_thumbnails,
+        )
+        assert block.get_thumbnail_url("star") == "/static/star.svg"
+        assert block.get_thumbnail_url("moon") == ""
+
 
 class TestThumbnailChoiceBlockDirectoryMode(TestCase):
     """Tests for ThumbnailChoiceBlock with thumbnail_directory parameter."""
@@ -841,3 +857,316 @@ class TestThumbnailChoiceBlockDirectoryMode(TestCase):
         assert any(
             item["type"] == "option" and item["value"] == "arrows/left" for item in tree
         )
+
+    # --- value_fn: basic behaviour ---
+
+    def test_value_fn_receives_full_relative_path(self):
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "forward-16.svg").write_text("<svg/>")
+
+        received = []
+        self._make_block(thumbnail_directory_value_fn=lambda p: received.append(p) or p)
+
+        assert received == ["arrows/forward-16"]
+
+    def test_value_fn_transforms_flat_file(self):
+        (self.icons_dir / "sun-16.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_value_fn=lambda p: p.replace("-16", "")
+        )
+        values = [v for v, _ in block.field.choices if v]
+
+        # The value is "sun", and not "sun-16".
+        assert values == ["sun"]
+
+    def test_value_fn_transforms_nested_file(self):
+        """Providing a thumbnail_directory_value_fn returns values as expected."""
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "forward-16.svg").write_text("<svg/>")
+
+        def strip_size(p):
+            return re.sub(r"-\d+$", "", p.rsplit("/", 1)[-1])
+
+        block = self._make_block(thumbnail_directory_value_fn=strip_size)
+        values = [v for v, _ in block.field.choices if v]
+
+        # The value is "forward", and not "arrows/forward" or "arrows/forward-16".
+        assert ["forward"] == values
+
+    def test_value_fn_thumbnail_map_keyed_by_transformed_value(self):
+        """Providing a thumbnail_directory_value_fn creates mapping as expected."""
+        (self.icons_dir / "sun-16.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_value_fn=lambda p: p.replace("-16", "")
+        )
+        mapping = block.field.widget.thumbnail_mapping
+
+        # The value in the mapping is "sun", and not "sun-16".
+        assert "sun" in mapping
+        assert mapping["sun"].endswith("sun-16.svg")
+        assert "sun-16" not in mapping
+
+    def test_value_fn_tree_items_use_transformed_value(self):
+        """Providing a thumbnail_directory_value_fn creates tree items as expected."""
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "forward-16.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_value_fn=lambda p: p.rsplit("/", 1)[-1].replace(
+                "-16", ""
+            )
+        )
+        options = [
+            item for item in block.field.widget._tree_items if item["type"] == "option"
+        ]
+
+        assert len(options) == 1
+        assert options[0]["value"] == "forward"
+
+    def test_value_fn_label_fn_still_receives_stem(self):
+        (self.icons_dir / "sun-16.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_value_fn=lambda p: p.replace("-16", ""),
+            thumbnail_directory_label_fn=lambda stem: f"LABEL:{stem}",
+        )
+        labels = {v: lbl for v, lbl in block.field.choices if v}
+
+        assert labels.get("sun") == "LABEL:sun-16"
+
+    def test_value_fn_none_uses_relative_path(self):
+        """Not defining a thumbnail_directory_value_fn uses a file's path."""
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left-16.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        values = [v for v, _ in block.field.choices if v]
+
+        assert "arrows/left-16" in values
+
+    def test_value_fn_can_preserve_directory_context(self):
+        solid = self.icons_dir / "solid"
+        solid.mkdir()
+        (solid / "forward.svg").write_text("<svg/>")
+        outline = self.icons_dir / "outline"
+        outline.mkdir()
+        (outline / "forward.svg").write_text("<svg/>")
+
+        block = self._make_block(thumbnail_directory_value_fn=lambda p: p)
+        values = [v for v, _ in block.field.choices if v]
+
+        assert "solid/forward" in values
+        assert "outline/forward" in values
+
+    def test_value_fn_can_partially_strip_suffix_while_preserving_directory(self):
+        solid = self.icons_dir / "solid"
+        solid.mkdir()
+        (solid / "forward-16.svg").write_text("<svg/>")
+        outline = self.icons_dir / "outline"
+        outline.mkdir()
+        (outline / "forward-16.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_value_fn=lambda p: re.sub(r"-\d+$", "", p)
+        )
+        values = [v for v, _ in block.field.choices if v]
+
+        assert "solid/forward" in values
+        assert "outline/forward" in values
+
+    # --- value_fn: uniqueness check ---
+
+    def test_value_fn_collision_raises_improperly_configured(self):
+        """
+        A thumbnail_directory_value_fn that would create the same value for 2 files raises an error.
+        """
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "forward-16.svg").write_text("<svg/>")
+        (arrows / "forward-24.svg").write_text("<svg/>")
+
+        with self.assertRaises(ImproperlyConfigured) as ctx:
+            self._make_block(
+                thumbnail_directory_value_fn=lambda p: re.sub(r"-\d+$", "", p)
+            )
+
+        msg = str(ctx.exception)
+        assert (
+            "ThumbnailChoiceBlock: thumbnail_directory_value_fn produced the duplicate value 'arrows/forward'"
+            in msg
+        )
+        assert "arrows/forward" in msg
+        assert "forward-16" in msg
+        assert "forward-24" in msg
+
+    def test_value_fn_collision_with_auto_reload_raises_on_render(self):
+        import re as re_mod
+
+        (self.icons_dir / "forward-16.svg").write_text("<svg/>")
+
+        with patch.object(
+            ThumbnailChoiceBlock, "_find_static_directory", return_value=self.icons_dir
+        ):
+            block = ThumbnailChoiceBlock(
+                thumbnail_directory="icons",
+                thumbnail_size=40,
+                thumbnail_directory_auto_reload=True,
+                thumbnail_directory_value_fn=lambda p: re_mod.sub(r"-\d+$", "", p),
+            )
+
+            values = [v for v, _ in block.field.choices if v]
+            assert "forward" in values
+
+            (self.icons_dir / "forward-24.svg").write_text("<svg/>")
+
+            with self.assertRaises(ImproperlyConfigured) as ctx:
+                block.get_form_state("forward")
+
+        msg = str(ctx.exception)
+        assert (
+            "ThumbnailChoiceBlock: thumbnail_directory_value_fn produced the duplicate value"
+            in msg
+        )
+        assert "forward-16" in msg
+        assert "forward-24" in msg
+
+    def test_value_fn_no_collision_does_not_raise(self):
+        """
+        A thumbnail_directory_value_fn that does not create the same value for 2 files has no error.
+        """
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left-16.svg").write_text("<svg/>")
+        (arrows / "right-16.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_value_fn=lambda p: re.sub(r"-\d+$", "", p)
+        )
+        values = [v for v, _ in block.field.choices if v]
+        assert "arrows/left" in values
+        assert "arrows/right" in values
+
+    def test_no_value_fn_does_not_check_uniqueness(self):
+        """Not defining a thumbnail_directory_value_fn uses a file's path (and has no error)."""
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left.svg").write_text("<svg/>")
+        nav = self.icons_dir / "nav"
+        nav.mkdir()
+        (nav / "left.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        values = [v for v, _ in block.field.choices if v]
+
+        assert "arrows/left" in values
+        assert "nav/left" in values
+
+    # --- value_fn: cache-key behaviour ---
+
+    def test_different_value_fn_same_directory_does_not_share_cache(self):
+        (self.icons_dir / "sun-16.svg").write_text("<svg/>")
+
+        block1 = self._make_block(thumbnail_directory_value_fn=value_fn_upper)
+        block2 = self._make_block()
+
+        values1 = [v for v, _ in block1.field.choices if v]
+        values2 = [v for v, _ in block2.field.choices if v]
+
+        assert "SUN-16" in values1
+        assert "sun-16" in values2
+        assert "sun-16" not in values1
+        assert "SUN-16" not in values2
+
+    def test_same_value_fn_same_directory_shares_cache(self):
+        (self.icons_dir / "sun-16.svg").write_text("<svg/>")
+
+        scan_calls = []
+        original_scan = ThumbnailChoiceBlock._scan_directory
+
+        def counting_scan(self_inner):
+            result = original_scan(self_inner)
+            scan_calls.append(1)
+            return result
+
+        with patch.object(
+            ThumbnailChoiceBlock, "_find_static_directory", return_value=self.icons_dir
+        ):
+            with patch.object(ThumbnailChoiceBlock, "_scan_directory", counting_scan):
+                ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_value_fn=value_fn_upper,
+                )
+                ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_value_fn=value_fn_upper,
+                )
+
+        assert len(scan_calls) == 1
+
+    def test_lambda_value_fn_does_not_share_cache(self):
+        (self.icons_dir / "sun-16.svg").write_text("<svg/>")
+
+        scan_calls = []
+        original_scan = ThumbnailChoiceBlock._scan_directory
+
+        def counting_scan(self_inner):
+            result = original_scan(self_inner)
+            scan_calls.append(1)
+            return result
+
+        with patch.object(
+            ThumbnailChoiceBlock, "_find_static_directory", return_value=self.icons_dir
+        ):
+            with patch.object(ThumbnailChoiceBlock, "_scan_directory", counting_scan):
+                ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_value_fn=lambda p: p.upper(),
+                )
+                ThumbnailChoiceBlock(
+                    thumbnail_directory="icons",
+                    thumbnail_size=40,
+                    thumbnail_directory_value_fn=lambda p: p.upper(),
+                )
+
+        assert len(scan_calls) == 2
+
+    # --- get_thumbnail_url ---
+
+    def test_get_thumbnail_url_returns_url_for_known_value(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        assert block.get_thumbnail_url("sun").endswith("sun.svg")
+
+    def test_get_thumbnail_url_returns_empty_string_for_unknown_value(self):
+        (self.icons_dir / "sun.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        assert block.get_thumbnail_url("moon") == ""
+
+    def test_get_thumbnail_url_uses_transformed_key_when_value_fn_set(self):
+        (self.icons_dir / "sun-16.svg").write_text("<svg/>")
+
+        block = self._make_block(
+            thumbnail_directory_value_fn=lambda p: p.replace("-16", "")
+        )
+        assert block.get_thumbnail_url("sun").endswith("sun-16.svg")
+        assert block.get_thumbnail_url("sun-16") == ""
+
+    def test_get_thumbnail_url_works_with_nested_directory_file(self):
+        arrows = self.icons_dir / "arrows"
+        arrows.mkdir()
+        (arrows / "left.svg").write_text("<svg/>")
+
+        block = self._make_block()
+        url = block.get_thumbnail_url("arrows/left")
+        assert url.endswith("arrows/left.svg")

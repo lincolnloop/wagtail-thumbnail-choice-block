@@ -183,6 +183,52 @@ icon = ThumbnailChoiceBlock(
 )
 ```
 
+#### Customising stored values
+
+By default the stored database value is the file's relative path from the directory root, without
+its extension (e.g. `arrows/forward-16` for `arrows/forward-16.svg`). Pass
+`thumbnail_directory_value_fn` to transform this into a shorter or differently-shaped value:
+
+```python
+import re
+
+def icon_value(rel_path: str) -> str:
+    # "arrows/forward-16" -> "arrows/forward"
+    # "sun-16"            -> "sun"
+    return re.sub(r"-\d+$", "", rel_path)
+
+icon = ThumbnailChoiceBlock(
+    thumbnail_directory="icons",
+    thumbnail_directory_value_fn=icon_value,
+)
+```
+
+The callable receives the **full relative path without extension**, not just the filename stem.
+This lets a function distinguish two files with the same stem in different subdirectories
+(e.g. `solid/forward` vs `outline/forward`), and return unique values for both.
+
+The thumbnail URL in the admin picker always reflects the real file path — only the stored value
+changes.
+
+`thumbnail_directory_value_fn` raises `ImproperlyConfigured` at startup if the function produces
+the same value for two different files. This is intentional: the library will not silently
+reassign a stored value from one file to another as the directory contents change. When a new
+file causes a collision the server will refuse to start with an error naming both files and
+suggesting a fix. To resolve it, either update `thumbnail_directory_value_fn` to return a
+different value for the new path (typically by using more path components to distinguish it), or
+rename or remove one of the files.
+
+> **Use a module-level function, not a lambda.** Each lambda literal is a distinct object, so
+> two block instances with identical lambdas will not share the scan cache and will each perform
+> a full filesystem scan. A named module-level function has stable identity and shares the cache
+> correctly.
+
+The example project (`example/demo/home/`) includes two files with the same filename stem in
+different subdirectories (`arrows/right-16.svg` and `mobile/arrows/right-16.svg`) and a comment
+in `models.py` showing the exact error a naive stem-only function would produce, alongside
+`_icon_value_fn` which uses path context to produce unique values (`"right"` and
+`"mobile-right"`).
+
 #### Live reload in development
 
 Set `thumbnail_directory_auto_reload=True` to re-scan the directory on every admin render, so newly added files appear without restarting the server:
@@ -273,8 +319,25 @@ Extends Wagtail's `ChoiceBlock` with thumbnail support.
 - `thumbnail_directory_auto_reload`: Re-scan `thumbnail_directory` on every form render instead of only at startup (default: `False`). Useful in development when adding new files without restarting the server.
 - `thumbnail_directory_sort_key`: Callable `(pathlib.Path) -> sort key` used to order files within each directory. Default: `path.name.lower()` (alphabetical, case-insensitive).
 - `thumbnail_directory_label_fn`: Callable `(str stem) -> str` used to generate a display label from a filename stem. Default: replaces `_` and `-` with spaces, then applies `str.title()` (e.g. `left_arrow` → `"Left Arrow"`).
+- `thumbnail_directory_value_fn`: Callable `(str rel_path_without_ext) -> str` applied to each file's relative path (without extension) to produce the stored choice value. Raises `ImproperlyConfigured` at startup if two files produce the same value — this is intentional to prevent silent reassignment of stored values when new files are added. Default: `None` (the relative path is stored as-is). Use a module-level function rather than a lambda; see [Customising stored values](#customising-stored-values).
 - `default`: Default selected value
 - `**kwargs`: Any additional arguments supported by Wagtail's ChoiceBlock
+
+**Methods:**
+
+#### `get_thumbnail_url(value: str) -> str`
+
+Returns the static URL for the thumbnail associated with the given stored choice value, or an
+empty string if the value is not found.
+
+```python
+url = icon_block.get_thumbnail_url("forward")
+# "/static/icons/arrows/forward-16.svg"
+```
+
+This is particularly useful when `thumbnail_directory_value_fn` is set and the stored value is
+a logical name rather than a filesystem path. The URL always points at the real file regardless
+of what `thumbnail_directory_value_fn` returns.
 
 ### ThumbnailRadioSelect
 

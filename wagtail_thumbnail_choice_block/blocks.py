@@ -130,6 +130,24 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
             )
         ```
 
+    Example (directory-based with value_fn to strip size suffix):
+        ```python
+        import re
+        from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+
+        def icon_value(rel_path: str) -> str:
+            # "arrows/forward-16" -> "arrows/forward"
+            # "sun-16"            -> "sun"
+            return re.sub(r"-\d+$", "", rel_path)
+
+        class MySettings(blocks.StructBlock):
+            icon = ThumbnailChoiceBlock(
+                thumbnail_directory="icons",
+                thumbnail_directory_value_fn=icon_value,
+                thumbnail_size=40,
+            )
+        ```
+
     Args:
         choices: List of (value, label) tuples for the choices, or a callable
                  that returns such a list
@@ -150,6 +168,24 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
                  directories. Defaults to case-insensitive filename sort.
         thumbnail_directory_label_fn: Callable(str) -> str for generating labels from file/directory
                  stems. Defaults to replacing _/- with spaces and title-casing.
+        thumbnail_directory_value_fn: Optional callable(rel_path: str) -> str. When provided,
+                 called for each discovered file with the file's relative path from the directory
+                 root, without the file extension (e.g. ``"arrows/forward-16"`` for
+                 ``arrows/forward-16.svg``). Its return value becomes the stored choice value.
+                 Must produce a unique value for every file in the directory tree. Raises
+                 ImproperlyConfigured at startup on collision. This is intentional: the library
+                 will not silently reassign a stored value from one file to another as the
+                 directory contents change. When a new file causes a collision, update
+                 thumbnail_directory_value_fn to return a different value for the new path
+                 (use more path components to distinguish it), or rename/remove one of the files.
+                 When thumbnail_directory_auto_reload=True, the directory is re-scanned on every
+                 admin form render, so a collision introduced by adding a new file raises
+                 ImproperlyConfigured on the next render rather than at startup.
+                 Defaults to None (the rel_path is stored as-is, which is the existing behaviour).
+
+                 Use a module-level function rather than a lambda. Each lambda literal is a
+                 distinct object, so two block instances using syntactically identical lambdas will
+                 not share a scan-cache entry and will each trigger a full filesystem scan.
         **kwargs: Additional arguments passed to ChoiceBlock
 
     Please note: if you are using thumbnail_templates, the Wagtail interface
@@ -173,6 +209,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         thumbnail_directory_auto_reload=False,
         thumbnail_directory_sort_key=None,
         thumbnail_directory_label_fn=None,
+        thumbnail_directory_value_fn=None,
         **kwargs,
     ):
         if thumbnail_directory is not None and any(
@@ -197,19 +234,27 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         self._thumbnail_directory_label_fn = (
             thumbnail_directory_label_fn or self._default_label_fn
         )
+        self._thumbnail_directory_value_fn = thumbnail_directory_value_fn
 
         if self._thumbnail_directory:
+            # Cache key includes value_fn so two blocks pointing at the same directory
+            # but with different value_fns do not share a cache entry. Module-level
+            # functions are hashable by identity; None is also hashable. Lambdas are
+            # hashable but have a distinct identity per literal — two block instances
+            # with semantically identical lambdas will not share the cache (performance
+            # concern, not a correctness bug; use a module-level function to avoid this).
+            cache_key = (self._thumbnail_directory, self._thumbnail_directory_value_fn)
             if (
                 not self._thumbnail_directory_auto_reload
-                and self._thumbnail_directory in ThumbnailChoiceBlock._scan_cache
+                and cache_key in ThumbnailChoiceBlock._scan_cache
             ):
                 resolved_choices, thumbnail_map, tree_items = (
-                    ThumbnailChoiceBlock._scan_cache[self._thumbnail_directory]
+                    ThumbnailChoiceBlock._scan_cache[cache_key]
                 )
             else:
                 resolved_choices, thumbnail_map, tree_items = self._scan_directory()
                 if not self._thumbnail_directory_auto_reload:
-                    ThumbnailChoiceBlock._scan_cache[self._thumbnail_directory] = (
+                    ThumbnailChoiceBlock._scan_cache[cache_key] = (
                         resolved_choices,
                         thumbnail_map,
                         tree_items,
@@ -295,6 +340,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         choices = []
         thumbnail_map = {}
         tree_items = []
+        seen = {}  # {transformed_value: Path} — populated only when value_fn is set
 
         def walk(path, depth, rel_parts):
             local_items = []
@@ -320,7 +366,24 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
                 elif entry.is_file() and entry.suffix.lower() in IMAGE_EXTENSIONS:
                     stem = entry.stem
                     value_parts = rel_parts + [stem]
-                    value = posixpath.join(*value_parts)
+                    rel_path_without_ext = posixpath.join(*value_parts)
+
+                    if self._thumbnail_directory_value_fn:
+                        value = self._thumbnail_directory_value_fn(rel_path_without_ext)
+                        if value in seen:
+                            raise ImproperlyConfigured(
+                                f"ThumbnailChoiceBlock: thumbnail_directory_value_fn produced the "
+                                f"duplicate value {value!r} for both '{seen[value]}' and '{entry}' "
+                                f"inside '{self._thumbnail_directory}'. The first file scanned has "
+                                f"already claimed this value. To resolve this, either: (1) update "
+                                f"thumbnail_directory_value_fn to return a different value for one "
+                                f"of these paths — use more path components to distinguish them — "
+                                f"or (2) rename or remove one of the files."
+                            )
+                        seen[value] = entry
+                    else:
+                        value = rel_path_without_ext
+
                     label = self._thumbnail_directory_label_fn(stem)
                     rel_with_ext = posixpath.join(*(rel_parts + [entry.name]))
                     thumbnail_url = f"{dir_prefix}/{rel_with_ext}"
@@ -340,6 +403,11 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
 
         tree_items, choices, thumbnail_map = walk(root, depth=0, rel_parts=[])
         return choices, thumbnail_map, tree_items
+
+    def get_thumbnail_url(self, value: str) -> str:
+        """Return the static URL for the thumbnail for the given stored value, or '' if not found."""
+        thumbnails = self._resolve_callable(self._thumbnails_source) or {}
+        return thumbnails.get(value, "")
 
     def _resolve_callable(self, value):
         """

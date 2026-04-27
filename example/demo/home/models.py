@@ -23,12 +23,58 @@ def _icon_label_fn(stem: str) -> str:
     return stem.replace("_", " ").replace("-", " ").title()
 
 
+def _icon_value_fn(rel_path: str) -> str:
+    """Produce a short stored value from a file's relative path.
+
+    Strips the trailing size suffix and directory components, but prefixes
+    "mobile-" for icons under mobile/ so they remain distinct from their
+    desktop counterparts with the same stem.
+
+    Examples:
+        "arrows/right-16"        -> "right"
+        "mobile/arrows/right-16" -> "mobile-right"
+        "sun-16"                 -> "sun"
+        "shapes/circles/circle"  -> "circle"
+    """
+    parts = rel_path.split("/")
+    stem = re.sub(r"-\d+$", "", parts[-1])
+    if "mobile" in parts:
+        return f"mobile-{stem}"
+    return stem
+
+
+# --- Collision demonstration ---
+# The icons/ directory contains two files with the same filename stem in
+# different subdirectories:
+#
+#   arrows/right-16.svg        → stored as "right"        (via _icon_value_fn)
+#   mobile/arrows/right-16.svg → stored as "mobile-right"
+#
+# _icon_value_fn uses path context ("mobile" in the path parts) to produce
+# distinct values, so both files coexist without error.
+#
+# If a naive stem-only function were used instead:
+#
+#   thumbnail_directory_value_fn=lambda p: re.sub(r"-\d+$", "", p.split("/")[-1])
+#
+# both files would produce "right", and ThumbnailChoiceBlock would raise
+# ImproperlyConfigured at startup:
+#
+#   ThumbnailChoiceBlock: thumbnail_directory_value_fn produced the duplicate
+#   value 'right' for both '.../arrows/right-16.svg' and
+#   '.../mobile/arrows/right-16.svg' inside 'icons'. The first file scanned
+#   has already claimed this value. To resolve this, either: (1) update
+#   thumbnail_directory_value_fn to return a different value for one of these
+#   paths — use more path components to distinguish them — or (2) rename or
+#   remove one of the files.
+
 # Directory-based block created at module level so its widget (with pre-scanned
 # tree_items) can be reused in the FieldPanel below.
 _directory_icon_block = ThumbnailChoiceBlock(
     thumbnail_directory="icons",
     thumbnail_size=40,
     thumbnail_directory_label_fn=_icon_label_fn,
+    thumbnail_directory_value_fn=_icon_value_fn,
 )
 
 
@@ -224,6 +270,7 @@ class HomePage(Page):
                     thumbnail_directory="icons",
                     thumbnail_size=40,
                     thumbnail_directory_label_fn=_icon_label_fn,
+                    thumbnail_directory_value_fn=_icon_value_fn,
                     label="Icon (from directory)",
                     help_text="Icons are loaded automatically from the static/icons/ folder.",
                 ),

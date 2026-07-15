@@ -29,6 +29,19 @@ class TestThumbnailRadioSelect(TestCase):
         assert widget.thumbnail_mapping == {"a": "/test/a.png", "b": "/test/b.png"}
         assert list(widget.choices) == [("a", "Option A"), ("b", "Option B")]
         assert widget.thumbnail_size == 40
+        assert widget.thumbnail_is_one_color is False
+
+    def test_widget_initialization_with_one_color_thumbnails(self):
+        """Test that widget adds the one-color class when enabled."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": "/test/a.png"},
+            thumbnail_size=40,
+            thumbnail_is_one_color=True,
+        )
+
+        assert widget.thumbnail_is_one_color is True
+        assert widget.attrs["class"] == "one-color-icons"
 
     def test_widget_initialization_without_thumbnails(self):
         """Test that widget works without thumbnail mapping."""
@@ -174,6 +187,19 @@ class TestThumbnailRadioSelect(TestCase):
 
         # Verify the CSS variable is present in the rendered HTML
         assert 'style="--thumbnail-size: 80px;"' in html
+
+    def test_widget_renders_one_color_wrapper_class(self):
+        """Test that widget renders the one-color wrapper class when enabled."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": "/test/a.png"},
+            thumbnail_size=40,
+            thumbnail_is_one_color=True,
+        )
+
+        html = widget.render("test_field", "a", attrs={"id": "test-id"})
+
+        assert 'class="thumbnail-radio-select one-color-icons"' in html
 
     def test_widget_initialization_with_thumbnail_templates(self):
         """Test that widget initializes correctly with thumbnail templates."""

@@ -65,12 +65,21 @@ class ThumbnailRadioSelect(RadioSelect):
         thumbnail_mapping=None,
         thumbnail_template_mapping=None,
         thumbnail_size=None,
+        thumbnail_is_one_color=False,
         tree_items=None,
     ):
         super().__init__(attrs, choices)
         self.thumbnail_mapping = thumbnail_mapping or {}
         self.thumbnail_template_mapping = thumbnail_template_mapping or {}
         self._tree_items = tree_items
+        self.thumbnail_is_one_color = thumbnail_is_one_color
+
+        if self.thumbnail_is_one_color:
+            existing_class = self.attrs.get("class", "")
+            classes = [existing_class] if existing_class else []
+            if "one-color-icons" not in existing_class.split():
+                classes.append("one-color-icons")
+            self.attrs["class"] = " ".join(classes)
 
         if thumbnail_size is None:
             raise ValueError(
@@ -216,6 +225,7 @@ class ThumbnailRadioSelect(RadioSelect):
                 tuple(c[0] for c in self.choices),
                 thumbnail_mapping_key,
                 template_mapping_key,
+                self.thumbnail_is_one_color,
                 translation.get_language(),
                 tree_key,
             )

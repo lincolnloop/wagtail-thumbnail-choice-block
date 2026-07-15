@@ -204,6 +204,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         thumbnails=None,
         thumbnail_templates=None,
         thumbnail_size=40,
+        thumbnail_is_one_color=False,
         required=False,
         thumbnail_directory=None,
         thumbnail_directory_auto_reload=False,
@@ -225,6 +226,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         self._thumbnails_source = thumbnails
         self._thumbnail_templates_source = thumbnail_templates
         self._thumbnail_size = thumbnail_size
+        self._thumbnail_is_one_color = thumbnail_is_one_color
         self._required = required
         self._thumbnail_directory = thumbnail_directory
         self._thumbnail_directory_auto_reload = thumbnail_directory_auto_reload
@@ -527,6 +529,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
             thumbnail_mapping=resolved_thumbnails,
             thumbnail_template_mapping=resolved_thumbnail_templates,
             thumbnail_size=self._thumbnail_size,
+            thumbnail_is_one_color=self._thumbnail_is_one_color,
             tree_items=self._tree_items,
         )
 

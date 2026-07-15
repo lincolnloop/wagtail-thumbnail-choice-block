@@ -89,6 +89,28 @@ class BannerSettings(blocks.StructBlock):
 
 **Note:** While the thumbnails in the dropdown appear in the size configured by the user, the preview thumbnail shown in the input field is automatically sized proportionally and constrained between 20px and 32px, to ensure it fits nicely within the input.
 
+### One-Color Icon Thumbnails
+
+If your thumbnails are monochrome icons that should inherit the current text color, pass `thumbnail_is_one_color=True`. The block will add the `.one-color-icons` class to the outer wrapper and the admin CSS will render the thumbnail through a mask so the icon takes on the surrounding color.
+
+Use this when you have a single-color icon set and want the selected and hovered states to stay visually consistent in both light and dark admin themes.
+
+```python
+from wagtail import blocks
+from wagtail_thumbnail_choice_block import ThumbnailChoiceBlock
+
+class IconChoiceBlock(blocks.StructBlock):
+    icon = ThumbnailChoiceBlock(
+        thumbnail_directory="img/firefox/flare/icons",
+        thumbnail_directory_label_fn=icon_display_label,
+        thumbnail_directory_value_fn=icon_value_fn,
+        thumbnail_size=20,
+        thumbnail_is_one_color=True,
+    )
+```
+
+If you already use template-based thumbnails, the same flag can be passed there too. The only requirement is that the rendered thumbnail represents a single-color icon that should be tinted by the admin UI rather than shown as a full-color image.
+
 ### Dynamic Choices with Callables
 
 Both `choices` and `thumbnails` can be callables (functions) that return the data. This is useful when you need to generate choices dynamically from the database or other runtime sources.

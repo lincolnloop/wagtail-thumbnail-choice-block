@@ -103,6 +103,10 @@
   border-radius: 3px;
 }
 
+.thumbnail-selected-preview {
+  filter: drop-shadow(0 0 1px black) drop-shadow(0 0 1px white);
+}
+
 .thumbnail-selected-preview > *:not(img) {
   width: 100%;
   height: 100%;
@@ -333,4 +337,8 @@
 
 .one-color-icons .thumbnail-image {
   opacity: 0;
+}
+
+.one-color-icons .thumbnail-selected-preview {
+  filter: none;
 }

@@ -303,6 +303,11 @@
   margin-top: 0;
 }
 
+.thumbnail-radio-heading[data-depth="0"]:has(+ [data-depth="1"]) {
+  margin-bottom: -20px;
+  background: var(--tcb-subheading-border);
+}
+
 .thumbnail-radio-heading[data-depth]:not([data-depth="0"]) {
   font-size: 10px;
   background: var(--tcb-subheading-bg);

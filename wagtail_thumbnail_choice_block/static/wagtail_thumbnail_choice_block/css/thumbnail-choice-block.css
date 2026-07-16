@@ -327,8 +327,11 @@
   font-style: italic;
 }
 
-.one-color-icons .thumbnail-wrapper:not(:has(.thumbnail-placeholder)),
-.one-color-icons .thumbnail-selected-preview {
+/* Image-based thumbnails (thumbnails/thumbnail_directory) render as <img>,
+   which can't be recolored directly, so tint them via a CSS mask built from
+   the image's own alpha channel. */
+.one-color-icons .thumbnail-wrapper:has(.thumbnail-image),
+.one-color-icons .thumbnail-selected-preview:has(.thumbnail-image) {
   mask-image: var(--thumbnail-mask);
   mask-size: 100% 100%;
   mask-repeat: no-repeat;
@@ -337,6 +340,15 @@
 
 .one-color-icons .thumbnail-image {
   opacity: 0;
+}
+
+/* Template-based thumbnails (thumbnail_templates) render arbitrary HTML, so
+   there's no single image to mask. Instead set `color` on the wrapper so a
+   template using fill="currentColor" (SVG) or color: inherit picks up the
+   same tint automatically. */
+.one-color-icons .thumbnail-wrapper:not(:has(.thumbnail-image)):not(:has(.thumbnail-placeholder)),
+.one-color-icons .thumbnail-selected-preview:not(:has(.thumbnail-image)) {
+  color: var(--w-color-text-context, currentColor);
 }
 
 .one-color-icons .thumbnail-selected-preview {

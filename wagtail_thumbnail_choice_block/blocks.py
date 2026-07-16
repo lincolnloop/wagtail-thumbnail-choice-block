@@ -159,13 +159,20 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
                             Can also be a callable that returns such a dictionary
         thumbnail_is_one_color: When True, adds a "one-color-icons" class to the
                             widget wrapper so the admin CSS renders each thumbnail
-                            through a CSS mask filled with the surrounding text
-                            color, instead of showing it in its original colors.
-                            Intended for monochrome icon sets so they read
+                            in the surrounding text color instead of its original
+                            colors. Intended for monochrome icon sets so they read
                             consistently in both light and dark admin themes.
-                            Only affects image-based thumbnails (thumbnails or
-                            thumbnail_directory); thumbnail_templates output is
-                            not currently masked. Defaults to False.
+                            For image-based thumbnails (thumbnails or
+                            thumbnail_directory), the image is tinted via a CSS
+                            mask built from its own alpha channel. For
+                            thumbnail_templates, arbitrary HTML can't be
+                            generically masked, so the wrapper's CSS `color` is
+                            set to the same tint instead — a template must
+                            render its icon with fill="currentColor" (SVG) or
+                            otherwise inherit `color` for it to pick up the
+                            tint; a template that hardcodes its own colors
+                            (e.g. per-path fill attributes) will not be
+                            affected by this option. Defaults to False.
         thumbnail_directory: Path relative to a staticfiles-findable location
                             (app static/, STATICFILES_DIRS, or STATIC_ROOT).
                             Mutually exclusive with choices, thumbnails, and

@@ -91,7 +91,7 @@ class BannerSettings(blocks.StructBlock):
 
 ### One-Color Icon Thumbnails
 
-If your thumbnails are monochrome icons that should inherit the current text color, pass `thumbnail_is_one_color=True`. The block will add the `.one-color-icons` class to the outer wrapper and the admin CSS will render the thumbnail through a mask so the icon takes on the surrounding color.
+If your thumbnails are monochrome icons that should inherit the current text color, pass `thumbnail_is_one_color=True`. The block will add the `.one-color-icons` class to the outer wrapper, and the admin CSS will tint the thumbnail to match the surrounding text color instead of showing it in its original colors.
 
 Use this when you have a single-color icon set and want the selected and hovered states to stay visually consistent in both light and dark admin themes.
 
@@ -109,7 +109,26 @@ class IconChoiceBlock(blocks.StructBlock):
     )
 ```
 
-If you already use template-based thumbnails, the same flag can be passed there too. The only requirement is that the rendered thumbnail represents a single-color icon that should be tinted by the admin UI rather than shown as a full-color image.
+With image-based thumbnails (`thumbnails` or `thumbnail_directory`), this works for any image format — the admin CSS builds a mask from the image's own alpha channel and fills it with the current text color, so no changes to the source images are needed.
+
+**Template-based thumbnails** (`thumbnail_templates`) render arbitrary HTML, so there's no single image the library can mask automatically. Instead, `thumbnail_is_one_color=True` sets the wrapper's CSS `color` to the same tint — your template picks it up only if it actually uses that inherited color, e.g. an inline SVG with `fill="currentColor"`:
+
+```python
+# home/templates/home/icons/arrow-up.html
+# <svg viewBox="0 0 24 24" fill="currentColor">
+#   <path d="M12 19V5M5 12l7-7 7 7"/>
+# </svg>
+
+class IconChoiceBlock(blocks.StructBlock):
+    icon = ThumbnailChoiceBlock(
+        choices=[("up", "Up")],
+        thumbnail_templates={"up": "home/icons/arrow-up.html"},
+        thumbnail_size=20,
+        thumbnail_is_one_color=True,
+    )
+```
+
+A template whose icon hardcodes its own colors (e.g. a `<path fill="#4CAF50">`) will not be tinted — `thumbnail_is_one_color` only affects elements that inherit `color` from the wrapper.
 
 ### Dynamic Choices with Callables
 

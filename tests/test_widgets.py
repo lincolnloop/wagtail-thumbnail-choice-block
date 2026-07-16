@@ -95,14 +95,14 @@ class TestThumbnailRadioSelect(TestCase):
                 <div class="thumbnail-dropdown">
                     <label for="test-id_0" class="thumbnail-radio-option selected" data-label="option a" data-depth="0">
                         <input type="radio" name="test_field" value="a" id="test-id_0" checked>
-                        <span class="thumbnail-wrapper">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url(/test/a.png);">
                             <img src="/test/a.png" alt="Option A" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option A</span>
                     </label>
                     <label for="test-id_1" class="thumbnail-radio-option" data-label="option b" data-depth="0">
                         <input type="radio" name="test_field" value="b" id="test-id_1">
-                        <span class="thumbnail-wrapper">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url(/test/b.png);">
                             <img src="/test/b.png" alt="Option B" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option B</span>
@@ -200,6 +200,30 @@ class TestThumbnailRadioSelect(TestCase):
         html = widget.render("test_field", "a", attrs={"id": "test-id"})
 
         assert 'class="thumbnail-radio-select one-color-icons"' in html
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_widget_one_color_with_thumbnail_templates_has_no_mask_style(
+        self, mock_render
+    ):
+        """
+        Test that one-color mode doesn't emit a mask style for template-based
+        thumbnails, since there's no image to build a mask from. The template
+        itself is responsible for using currentColor to pick up the tint.
+        """
+        mock_render.return_value = '<svg fill="currentColor"><path d="M0 0"/></svg>'
+
+        widget = ThumbnailRadioSelect(
+            choices=[("star", "Star")],
+            thumbnail_template_mapping={"star": "components/star.html"},
+            thumbnail_size=40,
+            thumbnail_is_one_color=True,
+        )
+
+        html = widget.render("test_field", "star", attrs={"id": "test-id"})
+
+        assert 'class="thumbnail-radio-select one-color-icons"' in html
+        assert "--thumbnail-mask" not in html
+        assert '<svg fill="currentColor"><path d="M0 0"/></svg>' in html
 
     def test_widget_initialization_with_thumbnail_templates(self):
         """Test that widget initializes correctly with thumbnail templates."""

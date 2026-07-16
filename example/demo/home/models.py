@@ -121,6 +121,21 @@ def get_one_color_arrow_thumbnails():
     }
 
 
+def get_one_color_arrow_templates():
+    """Return template thumbnails for the one-color arrow icons.
+
+    Each template renders the same arrow shape as an inline SVG with
+    fill="currentColor" and no per-path fill override, so it inherits the
+    tint that thumbnail_is_one_color=True applies to the wrapper.
+    """
+    return {
+        "up": "home/icons/inline/up.html",
+        "down": "home/icons/inline/down.html",
+        "left": "home/icons/inline/left.html",
+        "right": "home/icons/inline/right.html",
+    }
+
+
 def get_color_scheme_choices():
     """Return available color scheme choices."""
     return [
@@ -310,8 +325,9 @@ class HomePage(Page):
                     icon="placeholder",
                 ),
             ),
-            # One-color example (template-based) - shows the current gap where
-            # thumbnail_is_one_color has no effect on thumbnail_templates output
+            # One-color example (template-based) - the templates render an inline
+            # SVG with fill="currentColor" and no per-path fill override, so they
+            # pick up the tint that thumbnail_is_one_color applies to the wrapper.
             (
                 "one_color_icon_template",
                 blocks.StructBlock(
@@ -319,17 +335,18 @@ class HomePage(Page):
                         (
                             "icon",
                             ThumbnailChoiceBlock(
-                                choices=get_icon_choices(),
-                                thumbnail_templates=get_icon_thumbnail_templates(),
+                                choices=get_one_color_arrow_choices(),
+                                thumbnail_templates=get_one_color_arrow_templates(),
                                 thumbnail_size=20,
                                 thumbnail_is_one_color=True,
-                                label="Icon (one-color, template-based)",
+                                label="Arrow icon (one-color, template-based)",
                                 help_text=(
                                     "Demonstrates thumbnail_is_one_color=True with "
-                                    "thumbnail_templates. Currently renders as a plain "
-                                    "color swatch rather than a tinted icon, since the "
-                                    "mask variable is only wired up for image-based "
-                                    "thumbnails."
+                                    "thumbnail_templates. Each template renders an "
+                                    "inline SVG using fill=\"currentColor\", so it "
+                                    "inherits the same tint as the image-based "
+                                    "example above. A template that hardcodes its "
+                                    "own colors instead would not be tinted."
                                 ),
                             ),
                         ),

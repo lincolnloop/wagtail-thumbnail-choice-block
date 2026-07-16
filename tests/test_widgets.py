@@ -6,7 +6,10 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from wagtail_thumbnail_choice_block.widgets import ThumbnailRadioSelect
+from wagtail_thumbnail_choice_block.widgets import (
+    ThumbnailRadioSelect,
+    _css_escape_single_quoted,
+)
 
 
 class TestThumbnailRadioSelect(TestCase):
@@ -114,6 +117,53 @@ class TestThumbnailRadioSelect(TestCase):
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
             " ", ""
         ).replace("\n", "")
+
+    def test_css_escape_single_quoted_escapes_backslash_and_quote(self):
+        """Test the CSS-escaping helper used for the --thumbnail-mask url().
+
+        Backslash must be escaped first, or a value containing both a
+        backslash and a quote would double-escape incorrectly.
+        """
+        assert _css_escape_single_quoted("plain/path.png") == "plain/path.png"
+        assert _css_escape_single_quoted("a'b") == "a\\'b"
+        assert _css_escape_single_quoted("a\\b") == "a\\\\b"
+        assert (
+            _css_escape_single_quoted("x'); background-color: red; --evil: ('y")
+            == "x\\'); background-color: red; --evil: (\\'y"
+        )
+
+    def test_widget_mask_url_is_css_escaped_against_style_injection(self):
+        """Test that a thumbnail_url containing CSS-special characters can't
+        break out of the --thumbnail-mask url() and inject sibling CSS
+        declarations into the style attribute.
+
+        HTML-escaping alone can't prevent this: the browser HTML-decodes an
+        attribute's entities (e.g. Django's autoescaped `&#x27;` back into a
+        literal `'`) before its CSS engine parses the attribute's contents,
+        so a `'` in the value can still close the CSS string early unless
+        it's also escaped using CSS's own backslash-escape syntax, which
+        survives that HTML round-trip.
+        """
+        malicious_url = "x'); background-color: red; --evil: ('y"
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": malicious_url},
+            thumbnail_size=40,
+        )
+
+        html = widget.render("test_field", "a", attrs={"id": "test-id"})
+
+        # Django HTML-escapes the CSS-escaped backslash+quote sequence's
+        # quote character on top of our own escaping, producing this exact
+        # doubly-encoded form. Verified (outside this test) with a real CSS
+        # parser that decoding this back through the browser's HTML entity
+        # decoding yields a single, inert --thumbnail-mask declaration with
+        # no separate background-color/--evil declarations.
+        assert (
+            "style=\"--thumbnail-mask: url('x\\&#x27;); "
+            "background-color: red; --evil: (\\&#x27;y');\""
+            in html
+        )
 
     def test_widget_renders_selected_option(self):
         """Test that selected option has correct attributes."""

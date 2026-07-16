@@ -30,6 +30,9 @@
   /* Focus ring */
   --tcb-focus-border: #0060df;
   --tcb-focus-shadow: rgba(0, 96, 223, 0.1);
+
+  /* Spacing */
+  --tcb-dropdown-heading-margin-top: 8px;
 }
 
 .one-color-icons {
@@ -287,7 +290,7 @@
   width: 100%;
   flex-basis: 100%;
   /* Top margin separates the heading from the icon row above it */
-  margin-top: 8px;
+  margin-top: var(--tcb-dropdown-heading-margin-top);
   margin-bottom: 4px;
   padding: 4px 8px;
   padding-left: calc(8px + var(--heading-depth, 0) * 12px);
@@ -307,8 +310,14 @@
   margin-top: 0;
 }
 
+/* margin-bottom cancels the depth-1 heading's own margin-top (so it sits
+   flush against its parent) and then pulls it in an extra 12px so it tucks
+   visibly under the depth-0 heading, making the parent/child relationship
+   (e.g. "Circles"/"Squares" under "Shapes") read clearly at a glance.
+   Derived from --tcb-dropdown-heading-margin-top so this stays correct if that value
+   changes. */
 .thumbnail-radio-heading[data-depth="0"]:has(+ [data-depth="1"]) {
-  margin-bottom: -20px;
+  margin-bottom: calc(-1 * var(--tcb-dropdown-heading-margin-top) - 12px);
   background: var(--tcb-subheading-border);
 }
 

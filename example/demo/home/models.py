@@ -98,6 +98,29 @@ def get_icon_thumbnail_templates():
     }
 
 
+def get_one_color_arrow_choices():
+    """Return choices for the one-color, image-based arrow icons."""
+    return [
+        ("up", "Up"),
+        ("down", "Down"),
+        ("left", "Left"),
+        ("right", "Right"),
+    ]
+
+
+def get_one_color_arrow_thumbnails():
+    """Return image thumbnails for the one-color arrow icons.
+
+    Each SVG uses fill="currentColor", the shape mask-based tinting expects.
+    """
+    return {
+        "up": static("icons/arrows/up.svg"),
+        "down": static("icons/arrows/down.svg"),
+        "left": static("icons/arrows/left.svg"),
+        "right": static("icons/arrows/right-16.svg"),
+    }
+
+
 def get_color_scheme_choices():
     """Return available color scheme choices."""
     return [
@@ -259,6 +282,58 @@ class HomePage(Page):
                                 help_text="The heading text",
                             ),
                         ),
+                    ],
+                    icon="placeholder",
+                ),
+            ),
+            # One-color example (image-based) - monochrome SVGs tinted via CSS mask
+            (
+                "one_color_icon_image",
+                blocks.StructBlock(
+                    [
+                        (
+                            "icon",
+                            ThumbnailChoiceBlock(
+                                choices=get_one_color_arrow_choices(),
+                                thumbnails=get_one_color_arrow_thumbnails(),
+                                thumbnail_size=32,
+                                thumbnail_is_one_color=True,
+                                label="Arrow icon (one-color, image-based)",
+                                help_text=(
+                                    "Demonstrates thumbnail_is_one_color=True with "
+                                    "image-based (SVG) thumbnails."
+                                ),
+                            ),
+                        ),
+                        ("text", blocks.CharBlock(required=False)),
+                    ],
+                    icon="placeholder",
+                ),
+            ),
+            # One-color example (template-based) - shows the current gap where
+            # thumbnail_is_one_color has no effect on thumbnail_templates output
+            (
+                "one_color_icon_template",
+                blocks.StructBlock(
+                    [
+                        (
+                            "icon",
+                            ThumbnailChoiceBlock(
+                                choices=get_icon_choices(),
+                                thumbnail_templates=get_icon_thumbnail_templates(),
+                                thumbnail_size=20,
+                                thumbnail_is_one_color=True,
+                                label="Icon (one-color, template-based)",
+                                help_text=(
+                                    "Demonstrates thumbnail_is_one_color=True with "
+                                    "thumbnail_templates. Currently renders as a plain "
+                                    "color swatch rather than a tinted icon, since the "
+                                    "mask variable is only wired up for image-based "
+                                    "thumbnails."
+                                ),
+                            ),
+                        ),
+                        ("text", blocks.CharBlock(required=False)),
                     ],
                     icon="placeholder",
                 ),

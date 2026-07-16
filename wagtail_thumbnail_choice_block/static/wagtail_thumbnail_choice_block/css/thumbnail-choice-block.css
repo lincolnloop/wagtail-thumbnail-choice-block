@@ -341,6 +341,13 @@
    the image's own alpha channel. */
 .one-color-icons .thumbnail-wrapper:has(.thumbnail-image),
 .one-color-icons .thumbnail-selected-preview:has(.thumbnail-image) {
+  /* Unprefixed mask-image is only reliably supported from Safari 15.4+;
+     declare -webkit- first so older Safari builds that only understand the
+     prefixed form still get it, falling through to the unprefixed
+     declaration on browsers that support both. */
+  -webkit-mask-image: var(--thumbnail-mask);
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
   mask-image: var(--thumbnail-mask);
   mask-size: 100% 100%;
   mask-repeat: no-repeat;

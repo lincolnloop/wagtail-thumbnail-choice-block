@@ -95,14 +95,14 @@ class TestThumbnailRadioSelect(TestCase):
                 <div class="thumbnail-dropdown">
                     <label for="test-id_0" class="thumbnail-radio-option selected" data-label="option a" data-depth="0">
                         <input type="radio" name="test_field" value="a" id="test-id_0" checked>
-                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url(/test/a.png);">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/a.png');">
                             <img src="/test/a.png" alt="Option A" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option A</span>
                     </label>
                     <label for="test-id_1" class="thumbnail-radio-option" data-label="option b" data-depth="0">
                         <input type="radio" name="test_field" value="b" id="test-id_1">
-                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url(/test/b.png);">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/b.png');">
                             <img src="/test/b.png" alt="Option B" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option B</span>

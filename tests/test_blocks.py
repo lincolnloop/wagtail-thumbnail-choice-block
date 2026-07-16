@@ -128,14 +128,14 @@ class TestThumbnailChoiceBlock(TestCase):
                     </label>
                     <label class="thumbnail-radio-option selected" data-label="option a" data-depth="0">
                         <input type="radio" name="test_field" value="a" checked>
-                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url(/test/a.png);">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/a.png');">
                             <img src="/test/a.png" alt="Option A" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option A</span>
                     </label>
                     <label class="thumbnail-radio-option" data-label="option b" data-depth="0">
                         <input type="radio" name="test_field" value="b">
-                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url(/test/b.png);">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/b.png');">
                             <img src="/test/b.png" alt="Option B" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option B</span>

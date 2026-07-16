@@ -17,7 +17,7 @@
   {% else %}
     <label{% if item.attrs.id %} for="{{ item.attrs.id }}"{% endif %} class="thumbnail-radio-option{% if item.attrs.checked and item.value %} selected{% endif %}" data-label="{{ item.label|lower }}" data-depth="{{ item.depth }}">
       <input type="{{ item.type }}" name="{{ item.name }}"{% if item.value != None %} value="{{ item.value }}"{% endif %}{% for name, value in item.attrs.items %} {{ name }}{% if value != True %}="{{ value }}"{% endif %}{% endfor %}>
-      <span class="thumbnail-wrapper" {% if item.thumbnail_url and not item.thumbnail_template_html %}style="--thumbnail-mask: url({{ item.thumbnail_url }});"{% endif %}>
+      <span class="thumbnail-wrapper" {% if item.thumbnail_url and not item.thumbnail_template_html %}style="--thumbnail-mask: url('{{ item.thumbnail_url }}');"{% endif %}>
         {% if item.thumbnail_template_html %}
           {{ item.thumbnail_template_html|safe }}
         {% elif item.thumbnail_url %}

@@ -343,7 +343,7 @@ class HomePage(Page):
                                 help_text=(
                                     "Demonstrates thumbnail_is_one_color=True with "
                                     "thumbnail_templates. Each template renders an "
-                                    "inline SVG using fill=\"currentColor\", so it "
+                                    'inline SVG using fill="currentColor", so it '
                                     "inherits the same tint as the image-based "
                                     "example above. A template that hardcodes its "
                                     "own colors instead would not be tinted."

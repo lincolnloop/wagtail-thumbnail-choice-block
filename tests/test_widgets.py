@@ -161,8 +161,7 @@ class TestThumbnailRadioSelect(TestCase):
         # no separate background-color/--evil declarations.
         assert (
             "style=\"--thumbnail-mask: url('x\\&#x27;); "
-            "background-color: red; --evil: (\\&#x27;y');\""
-            in html
+            "background-color: red; --evil: (\\&#x27;y');\"" in html
         )
 
     def test_widget_renders_selected_option(self):

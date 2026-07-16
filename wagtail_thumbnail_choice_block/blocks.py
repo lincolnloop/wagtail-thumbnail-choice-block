@@ -157,6 +157,15 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
                             - A string (template path), or
                             - A dict with 'template' (path) and 'context' (dict) keys
                             Can also be a callable that returns such a dictionary
+        thumbnail_is_one_color: When True, adds a "one-color-icons" class to the
+                            widget wrapper so the admin CSS renders each thumbnail
+                            through a CSS mask filled with the surrounding text
+                            color, instead of showing it in its original colors.
+                            Intended for monochrome icon sets so they read
+                            consistently in both light and dark admin themes.
+                            Only affects image-based thumbnails (thumbnails or
+                            thumbnail_directory); thumbnail_templates output is
+                            not currently masked. Defaults to False.
         thumbnail_directory: Path relative to a staticfiles-findable location
                             (app static/, STATICFILES_DIRS, or STATIC_ROOT).
                             Mutually exclusive with choices, thumbnails, and

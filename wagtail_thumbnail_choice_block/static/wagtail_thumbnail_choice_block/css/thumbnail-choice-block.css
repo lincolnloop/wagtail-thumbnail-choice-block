@@ -342,3 +342,7 @@
 .one-color-icons .thumbnail-selected-preview {
   filter: none;
 }
+
+.one-color-icons .thumbnail-wrapper > *:not(.thumbnail-placeholder) {
+  filter: none;
+}

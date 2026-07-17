@@ -157,6 +157,22 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
                             - A string (template path), or
                             - A dict with 'template' (path) and 'context' (dict) keys
                             Can also be a callable that returns such a dictionary
+        thumbnail_is_one_color: When True, adds a "one-color-icons" class to the
+                            widget wrapper so the admin CSS renders each thumbnail
+                            in the surrounding text color instead of its original
+                            colors. Intended for monochrome icon sets so they read
+                            consistently in both light and dark admin themes.
+                            For image-based thumbnails (thumbnails or
+                            thumbnail_directory), the image is tinted via a CSS
+                            mask built from its own alpha channel. For
+                            thumbnail_templates, arbitrary HTML can't be
+                            generically masked, so the wrapper's CSS `color` is
+                            set to the same tint instead — a template must
+                            render its icon with fill="currentColor" (SVG) or
+                            otherwise inherit `color` for it to pick up the
+                            tint; a template that hardcodes its own colors
+                            (e.g. per-path fill attributes) will not be
+                            affected by this option. Defaults to False.
         thumbnail_directory: Path relative to a staticfiles-findable location
                             (app static/, STATICFILES_DIRS, or STATIC_ROOT).
                             Mutually exclusive with choices, thumbnails, and
@@ -204,6 +220,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         thumbnails=None,
         thumbnail_templates=None,
         thumbnail_size=40,
+        thumbnail_is_one_color=False,
         required=False,
         thumbnail_directory=None,
         thumbnail_directory_auto_reload=False,
@@ -225,6 +242,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
         self._thumbnails_source = thumbnails
         self._thumbnail_templates_source = thumbnail_templates
         self._thumbnail_size = thumbnail_size
+        self._thumbnail_is_one_color = thumbnail_is_one_color
         self._required = required
         self._thumbnail_directory = thumbnail_directory
         self._thumbnail_directory_auto_reload = thumbnail_directory_auto_reload
@@ -527,6 +545,7 @@ class ThumbnailChoiceBlock(blocks.ChoiceBlock):
             thumbnail_mapping=resolved_thumbnails,
             thumbnail_template_mapping=resolved_thumbnail_templates,
             thumbnail_size=self._thumbnail_size,
+            thumbnail_is_one_color=self._thumbnail_is_one_color,
             tree_items=self._tree_items,
         )
 

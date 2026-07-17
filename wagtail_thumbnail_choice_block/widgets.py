@@ -7,6 +7,22 @@ from django.template.loader import render_to_string
 from django.utils import translation
 
 
+def _css_escape_single_quoted(value):
+    """Escape a string for safe embedding inside a single-quoted CSS string,
+    e.g. the URL in `url('...')` within an inline style attribute.
+
+    This must happen before Django's HTML autoescaping, not instead of it:
+    the browser HTML-decodes an attribute's entities (turning an
+    autoescaped `&#x27;` back into a literal `'`) before its CSS engine
+    parses the attribute's contents, so HTML-level escaping alone cannot
+    stop a `'` in the value from closing the CSS string early and letting
+    the rest of the value run as live CSS declarations. Backslash-escaping
+    the character here, using CSS's own escape syntax, survives that
+    HTML round-trip because a literal backslash isn't HTML-special.
+    """
+    return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
 class ThumbnailRadioSelect(RadioSelect):
     """
     Custom radio select widget that displays thumbnails for each option.
@@ -65,12 +81,21 @@ class ThumbnailRadioSelect(RadioSelect):
         thumbnail_mapping=None,
         thumbnail_template_mapping=None,
         thumbnail_size=None,
+        thumbnail_is_one_color=False,
         tree_items=None,
     ):
         super().__init__(attrs, choices)
         self.thumbnail_mapping = thumbnail_mapping or {}
         self.thumbnail_template_mapping = thumbnail_template_mapping or {}
         self._tree_items = tree_items
+        self.thumbnail_is_one_color = thumbnail_is_one_color
+
+        if self.thumbnail_is_one_color:
+            existing_class = self.attrs.get("class", "")
+            classes = [existing_class] if existing_class else []
+            if "one-color-icons" not in existing_class.split():
+                classes.append("one-color-icons")
+            self.attrs["class"] = " ".join(classes)
 
         if thumbnail_size is None:
             raise ValueError(
@@ -216,6 +241,7 @@ class ThumbnailRadioSelect(RadioSelect):
                 tuple(c[0] for c in self.choices),
                 thumbnail_mapping_key,
                 template_mapping_key,
+                self.thumbnail_is_one_color,
                 translation.get_language(),
                 tree_key,
             )
@@ -240,7 +266,14 @@ class ThumbnailRadioSelect(RadioSelect):
         )
 
         # Add thumbnail URL to the option context.
-        option["thumbnail_url"] = self.thumbnail_mapping.get(value, "")
+        thumbnail_url = self.thumbnail_mapping.get(value, "")
+        option["thumbnail_url"] = thumbnail_url
+        # Separate, CSS-escaped variant for embedding in the --thumbnail-mask
+        # inline style (see _css_escape_single_quoted). thumbnail_url itself
+        # is left as plain HTML-escaped text for use in <img src="...">.
+        option["thumbnail_mask_url"] = (
+            _css_escape_single_quoted(thumbnail_url) if thumbnail_url else ""
+        )
 
         # Add rendered template HTML to the option context.
         thumbnail_template_config = self.thumbnail_template_mapping.get(value)

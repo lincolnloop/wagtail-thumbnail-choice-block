@@ -6,7 +6,10 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from wagtail_thumbnail_choice_block.widgets import ThumbnailRadioSelect
+from wagtail_thumbnail_choice_block.widgets import (
+    ThumbnailRadioSelect,
+    _css_escape_single_quoted,
+)
 
 
 class TestThumbnailRadioSelect(TestCase):
@@ -29,6 +32,19 @@ class TestThumbnailRadioSelect(TestCase):
         assert widget.thumbnail_mapping == {"a": "/test/a.png", "b": "/test/b.png"}
         assert list(widget.choices) == [("a", "Option A"), ("b", "Option B")]
         assert widget.thumbnail_size == 40
+        assert widget.thumbnail_is_one_color is False
+
+    def test_widget_initialization_with_one_color_thumbnails(self):
+        """Test that widget adds the one-color class when enabled."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": "/test/a.png"},
+            thumbnail_size=40,
+            thumbnail_is_one_color=True,
+        )
+
+        assert widget.thumbnail_is_one_color is True
+        assert widget.attrs["class"] == "one-color-icons"
 
     def test_widget_initialization_without_thumbnails(self):
         """Test that widget works without thumbnail mapping."""
@@ -82,14 +98,14 @@ class TestThumbnailRadioSelect(TestCase):
                 <div class="thumbnail-dropdown">
                     <label for="test-id_0" class="thumbnail-radio-option selected" data-label="option a" data-depth="0">
                         <input type="radio" name="test_field" value="a" id="test-id_0" checked>
-                        <span class="thumbnail-wrapper">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/a.png');">
                             <img src="/test/a.png" alt="Option A" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option A</span>
                     </label>
                     <label for="test-id_1" class="thumbnail-radio-option" data-label="option b" data-depth="0">
                         <input type="radio" name="test_field" value="b" id="test-id_1">
-                        <span class="thumbnail-wrapper">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/b.png');">
                             <img src="/test/b.png" alt="Option B" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option B</span>
@@ -101,6 +117,52 @@ class TestThumbnailRadioSelect(TestCase):
         assert expected_html.replace(" ", "").replace("\n", "") == html.replace(
             " ", ""
         ).replace("\n", "")
+
+    def test_css_escape_single_quoted_escapes_backslash_and_quote(self):
+        """Test the CSS-escaping helper used for the --thumbnail-mask url().
+
+        Backslash must be escaped first, or a value containing both a
+        backslash and a quote would double-escape incorrectly.
+        """
+        assert _css_escape_single_quoted("plain/path.png") == "plain/path.png"
+        assert _css_escape_single_quoted("a'b") == "a\\'b"
+        assert _css_escape_single_quoted("a\\b") == "a\\\\b"
+        assert (
+            _css_escape_single_quoted("x'); background-color: red; --evil: ('y")
+            == "x\\'); background-color: red; --evil: (\\'y"
+        )
+
+    def test_widget_mask_url_is_css_escaped_against_style_injection(self):
+        """Test that a thumbnail_url containing CSS-special characters can't
+        break out of the --thumbnail-mask url() and inject sibling CSS
+        declarations into the style attribute.
+
+        HTML-escaping alone can't prevent this: the browser HTML-decodes an
+        attribute's entities (e.g. Django's autoescaped `&#x27;` back into a
+        literal `'`) before its CSS engine parses the attribute's contents,
+        so a `'` in the value can still close the CSS string early unless
+        it's also escaped using CSS's own backslash-escape syntax, which
+        survives that HTML round-trip.
+        """
+        malicious_url = "x'); background-color: red; --evil: ('y"
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": malicious_url},
+            thumbnail_size=40,
+        )
+
+        html = widget.render("test_field", "a", attrs={"id": "test-id"})
+
+        # Django HTML-escapes the CSS-escaped backslash+quote sequence's
+        # quote character on top of our own escaping, producing this exact
+        # doubly-encoded form. Verified (outside this test) with a real CSS
+        # parser that decoding this back through the browser's HTML entity
+        # decoding yields a single, inert --thumbnail-mask declaration with
+        # no separate background-color/--evil declarations.
+        assert (
+            "style=\"--thumbnail-mask: url('x\\&#x27;); "
+            "background-color: red; --evil: (\\&#x27;y');\"" in html
+        )
 
     def test_widget_renders_selected_option(self):
         """Test that selected option has correct attributes."""
@@ -174,6 +236,43 @@ class TestThumbnailRadioSelect(TestCase):
 
         # Verify the CSS variable is present in the rendered HTML
         assert 'style="--thumbnail-size: 80px;"' in html
+
+    def test_widget_renders_one_color_wrapper_class(self):
+        """Test that widget renders the one-color wrapper class when enabled."""
+        widget = ThumbnailRadioSelect(
+            choices=[("a", "Option A")],
+            thumbnail_mapping={"a": "/test/a.png"},
+            thumbnail_size=40,
+            thumbnail_is_one_color=True,
+        )
+
+        html = widget.render("test_field", "a", attrs={"id": "test-id"})
+
+        assert 'class="thumbnail-radio-select one-color-icons"' in html
+
+    @patch("wagtail_thumbnail_choice_block.widgets.render_to_string")
+    def test_widget_one_color_with_thumbnail_templates_has_no_mask_style(
+        self, mock_render
+    ):
+        """
+        Test that one-color mode doesn't emit a mask style for template-based
+        thumbnails, since there's no image to build a mask from. The template
+        itself is responsible for using currentColor to pick up the tint.
+        """
+        mock_render.return_value = '<svg fill="currentColor"><path d="M0 0"/></svg>'
+
+        widget = ThumbnailRadioSelect(
+            choices=[("star", "Star")],
+            thumbnail_template_mapping={"star": "components/star.html"},
+            thumbnail_size=40,
+            thumbnail_is_one_color=True,
+        )
+
+        html = widget.render("test_field", "star", attrs={"id": "test-id"})
+
+        assert 'class="thumbnail-radio-select one-color-icons"' in html
+        assert "--thumbnail-mask" not in html
+        assert '<svg fill="currentColor"><path d="M0 0"/></svg>' in html
 
     def test_widget_initialization_with_thumbnail_templates(self):
         """Test that widget initializes correctly with thumbnail templates."""

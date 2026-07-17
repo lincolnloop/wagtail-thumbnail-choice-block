@@ -31,6 +31,17 @@ class TestThumbnailChoiceBlock(TestCase):
 
         assert block._thumbnails_source == {"a": "/test/a.png", "b": "/test/b.png"}
         assert block._thumbnail_size == 40  # Default size
+        assert block._thumbnail_is_one_color is False
+
+    def test_block_initialization_with_one_color_thumbnails(self):
+        """Test that block stores the one-color thumbnail flag."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A")],
+            thumbnails={"a": "/test/a.png"},
+            thumbnail_is_one_color=True,
+        )
+
+        assert block._thumbnail_is_one_color is True
 
     def test_block_initialization_without_thumbnails(self):
         """Test that block works without thumbnails."""
@@ -117,14 +128,14 @@ class TestThumbnailChoiceBlock(TestCase):
                     </label>
                     <label class="thumbnail-radio-option selected" data-label="option a" data-depth="0">
                         <input type="radio" name="test_field" value="a" checked>
-                        <span class="thumbnail-wrapper">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/a.png');">
                             <img src="/test/a.png" alt="Option A" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option A</span>
                     </label>
                     <label class="thumbnail-radio-option" data-label="option b" data-depth="0">
                         <input type="radio" name="test_field" value="b">
-                        <span class="thumbnail-wrapper">
+                        <span class="thumbnail-wrapper" style="--thumbnail-mask: url('/test/b.png');">
                             <img src="/test/b.png" alt="Option B" class="thumbnail-image">
                         </span>
                         <span class="thumbnail-label">Option B</span>
@@ -363,6 +374,19 @@ class TestThumbnailChoiceBlock(TestCase):
 
         # Verify the CSS variable is present in the rendered HTML
         assert 'style="--thumbnail-size: 100px;"' in html
+
+    def test_block_renders_one_color_wrapper_class(self):
+        """Test that block renders the one-color wrapper class when enabled."""
+        block = ThumbnailChoiceBlock(
+            choices=[("a", "Option A")],
+            thumbnails={"a": "/test/a.png"},
+            thumbnail_is_one_color=True,
+        )
+
+        field = block.field
+        html = str(field.widget.render("test_field", "a"))
+
+        assert 'class="thumbnail-radio-select one-color-icons"' in html
 
     def test_block_default_not_required(self):
         """Test that block is not required by default."""

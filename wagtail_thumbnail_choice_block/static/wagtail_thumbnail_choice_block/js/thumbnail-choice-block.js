@@ -78,6 +78,7 @@
                                 // Clone the thumbnail content
                                 thumbnailPreview.innerHTML = thumbnailWrapper.innerHTML;
                                 thumbnailPreview.classList.add('visible');
+                                thumbnailPreview.style.setProperty('--thumbnail-mask', thumbnailWrapper.style.getPropertyValue('--thumbnail-mask'));
                                 filterInput.classList.add('has-thumbnail');
                             } else {
                                 thumbnailPreview.innerHTML = '';

@@ -115,6 +115,48 @@
         </p>
     </div>
 
+    {% elif block.block_type == 'one_color_icon_image' %}
+    <div class="content-block">
+        <h3>One-Color Icon Block (image-based)</h3>
+        <div class="icon-display">
+            {% get_static_prefix as STATIC_PREFIX %} {% if block.value.icon == 'right' %}
+            <img
+                src="{{ STATIC_PREFIX }}icons/arrows/right-16.svg"
+                alt="{{ block.value.icon }}"
+                style="width: 32px; height: 32px"
+            />
+            {% else %}
+            <img
+                src="{{ STATIC_PREFIX }}icons/arrows/{{ block.value.icon }}.svg"
+                alt="{{ block.value.icon }}"
+                style="width: 32px; height: 32px"
+            />
+            {% endif %}
+            <span>{{ block.value.text|default:"" }}</span>
+        </div>
+        <p class="field-info">
+            <em>thumbnail_is_one_color=True (image-based)</em>
+        </p>
+    </div>
+
+    {% elif block.block_type == 'one_color_icon_template' %}
+    <div class="content-block">
+        <h3>One-Color Icon Block (template-based)</h3>
+        <div class="icon-display">
+            {% include "home/icons/inline/"|add:block.value.icon|add:".html" %}
+            <span>{{ block.value.text|default:"" }}</span>
+        </div>
+        <p class="field-info">
+            <em
+                >thumbnail_is_one_color=True (template-based) — in the
+                Wagtail admin, this template's fill="currentColor" SVG is
+                tinted to match the surrounding text color. Here on the
+                front end it just renders as authored, with no tinting
+                applied.</em
+            >
+        </p>
+    </div>
+
     {% elif block.block_type == 'directory_icon' %}
     <div class="content-block">
         <h3>Directory Icon Block</h3>

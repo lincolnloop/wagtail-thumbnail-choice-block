@@ -98,6 +98,44 @@ def get_icon_thumbnail_templates():
     }
 
 
+def get_one_color_arrow_choices():
+    """Return choices for the one-color, image-based arrow icons."""
+    return [
+        ("up", "Up"),
+        ("down", "Down"),
+        ("left", "Left"),
+        ("right", "Right"),
+    ]
+
+
+def get_one_color_arrow_thumbnails():
+    """Return image thumbnails for the one-color arrow icons.
+
+    Each SVG uses fill="currentColor", the shape mask-based tinting expects.
+    """
+    return {
+        "up": static("icons/arrows/up.svg"),
+        "down": static("icons/arrows/down.svg"),
+        "left": static("icons/arrows/left.svg"),
+        "right": static("icons/arrows/right-16.svg"),
+    }
+
+
+def get_one_color_arrow_templates():
+    """Return template thumbnails for the one-color arrow icons.
+
+    Each template renders the same arrow shape as an inline SVG with
+    fill="currentColor" and no per-path fill override, so it inherits the
+    tint that thumbnail_is_one_color=True applies to the wrapper.
+    """
+    return {
+        "up": "home/icons/inline/up.html",
+        "down": "home/icons/inline/down.html",
+        "left": "home/icons/inline/left.html",
+        "right": "home/icons/inline/right.html",
+    }
+
+
 def get_color_scheme_choices():
     """Return available color scheme choices."""
     return [
@@ -259,6 +297,60 @@ class HomePage(Page):
                                 help_text="The heading text",
                             ),
                         ),
+                    ],
+                    icon="placeholder",
+                ),
+            ),
+            # One-color example (image-based) - monochrome SVGs tinted via CSS mask
+            (
+                "one_color_icon_image",
+                blocks.StructBlock(
+                    [
+                        (
+                            "icon",
+                            ThumbnailChoiceBlock(
+                                choices=get_one_color_arrow_choices(),
+                                thumbnails=get_one_color_arrow_thumbnails(),
+                                thumbnail_size=32,
+                                thumbnail_is_one_color=True,
+                                label="Arrow icon (one-color, image-based)",
+                                help_text=(
+                                    "Demonstrates thumbnail_is_one_color=True with "
+                                    "image-based (SVG) thumbnails."
+                                ),
+                            ),
+                        ),
+                        ("text", blocks.CharBlock(required=False)),
+                    ],
+                    icon="placeholder",
+                ),
+            ),
+            # One-color example (template-based) - the templates render an inline
+            # SVG with fill="currentColor" and no per-path fill override, so they
+            # pick up the tint that thumbnail_is_one_color applies to the wrapper.
+            (
+                "one_color_icon_template",
+                blocks.StructBlock(
+                    [
+                        (
+                            "icon",
+                            ThumbnailChoiceBlock(
+                                choices=get_one_color_arrow_choices(),
+                                thumbnail_templates=get_one_color_arrow_templates(),
+                                thumbnail_size=20,
+                                thumbnail_is_one_color=True,
+                                label="Arrow icon (one-color, template-based)",
+                                help_text=(
+                                    "Demonstrates thumbnail_is_one_color=True with "
+                                    "thumbnail_templates. Each template renders an "
+                                    'inline SVG using fill="currentColor", so it '
+                                    "inherits the same tint as the image-based "
+                                    "example above. A template that hardcodes its "
+                                    "own colors instead would not be tinted."
+                                ),
+                            ),
+                        ),
+                        ("text", blocks.CharBlock(required=False)),
                     ],
                     icon="placeholder",
                 ),

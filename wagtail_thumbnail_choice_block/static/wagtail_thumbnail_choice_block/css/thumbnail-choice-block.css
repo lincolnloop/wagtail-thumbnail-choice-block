@@ -7,48 +7,59 @@
   --thumbnail-bg: #767676;
 
   /* Borders */
-  --tcb-border:             #c8c8c8;
-  --tcb-hover-border:       #e0e0e0;
-  --tcb-selected-border:    #007d7e;
-  --tcb-input-border:       #ddd;
-  --tcb-heading-border:     #c8c8c8;
-  --tcb-subheading-border:  #d8d8d8;
+  --tcb-border: #c8c8c8;
+  --tcb-hover-border: #e0e0e0;
+  --tcb-selected-border: #007d7e;
+  --tcb-input-border: #ddd;
+  --tcb-heading-border: #c8c8c8;
+  --tcb-subheading-border: #d8d8d8;
 
   /* Backgrounds */
-  --tcb-input-bg:           white;
-  --tcb-dropdown-bg:        transparent;
-  --tcb-placeholder-bg:     #f5f5f5;
-  --tcb-heading-bg:         #f0f0f0;
-  --tcb-subheading-bg:      #f5f5f5;
+  --tcb-input-bg: white;
+  --tcb-dropdown-bg: transparent;
+  --tcb-placeholder-bg: #f5f5f5;
+  --tcb-heading-bg: #f0f0f0;
+  --tcb-subheading-bg: #f5f5f5;
 
   /* Text */
-  --tcb-label-color:          #5c5c5c;
+  --tcb-label-color: #5c5c5c;
   --tcb-selected-label-color: #2d1f5f;
-  --tcb-heading-color:        #555;
-  --tcb-muted-color:          #666;
+  --tcb-heading-color: #555;
+  --tcb-muted-color: #666;
 
   /* Focus ring */
   --tcb-focus-border: #0060df;
   --tcb-focus-shadow: rgba(0, 96, 223, 0.1);
+
+  /* Spacing */
+  --tcb-dropdown-heading-margin-top: 8px;
+}
+
+.one-color-icons {
+  --thumbnail-bg: rgba(0, 0, 0, 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --tcb-border:             #5c5c5c;
-    --tcb-hover-border:       #7c7c7c;
-    --tcb-input-border:       #5c5c5c;
-    --tcb-heading-border:     #5c5c5c;
-    --tcb-subheading-border:  #4a4a4a;
+    --tcb-border: #5c5c5c;
+    --tcb-hover-border: #7c7c7c;
+    --tcb-input-border: #5c5c5c;
+    --tcb-heading-border: #5c5c5c;
+    --tcb-subheading-border: #4a4a4a;
 
-    --tcb-dropdown-bg:        #222;
-    --tcb-placeholder-bg:     #333;
-    --tcb-heading-bg:         #2a2a2a;
-    --tcb-subheading-bg:      #252525;
+    --tcb-dropdown-bg: #222;
+    --tcb-placeholder-bg: #333;
+    --tcb-heading-bg: #2a2a2a;
+    --tcb-subheading-bg: #252525;
 
-    --tcb-label-color:          #c8c8c8;
+    --tcb-label-color: #c8c8c8;
     --tcb-selected-label-color: white;
-    --tcb-heading-color:        #c8c8c8;
-    --tcb-muted-color:          #999;
+    --tcb-heading-color: #c8c8c8;
+    --tcb-muted-color: #999;
+  }
+
+  .one-color-icons {
+    --thumbnail-bg: rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -95,16 +106,16 @@
   border-radius: 3px;
 }
 
+.thumbnail-selected-preview {
+  filter: drop-shadow(0 0 1px black) drop-shadow(0 0 1px white);
+}
+
 .thumbnail-selected-preview > *:not(img) {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.thumbnail-selected-preview {
-    filter: drop-shadow(0 0 1px black) drop-shadow(0 0 1px white);
 }
 
 .thumbnail-selected-preview [class*="icon"] {
@@ -216,8 +227,8 @@
   width: var(--thumbnail-size, 40px);
   height: var(--thumbnail-size, 40px);
   border-radius: 4px;
-  overflow: hidden;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .thumbnail-wrapper > *:not(.thumbnail-placeholder) {
@@ -279,7 +290,7 @@
   width: 100%;
   flex-basis: 100%;
   /* Top margin separates the heading from the icon row above it */
-  margin-top: 8px;
+  margin-top: var(--tcb-dropdown-heading-margin-top);
   margin-bottom: 4px;
   padding: 4px 8px;
   padding-left: calc(8px + var(--heading-depth, 0) * 12px);
@@ -299,6 +310,17 @@
   margin-top: 0;
 }
 
+/* margin-bottom cancels the depth-1 heading's own margin-top (so it sits
+   flush against its parent) and then pulls it in an extra 12px so it tucks
+   visibly under the depth-0 heading, making the parent/child relationship
+   (e.g. "Circles"/"Squares" under "Shapes") read clearly at a glance.
+   Derived from --tcb-dropdown-heading-margin-top so this stays correct if that value
+   changes. */
+.thumbnail-radio-heading[data-depth="0"]:has(+ [data-depth="1"]) {
+  margin-bottom: calc(-1 * var(--tcb-dropdown-heading-margin-top) - 12px);
+  background: var(--tcb-subheading-border);
+}
+
 .thumbnail-radio-heading[data-depth]:not([data-depth="0"]) {
   font-size: 10px;
   background: var(--tcb-subheading-bg);
@@ -312,4 +334,43 @@
   color: var(--tcb-muted-color);
   font-size: 14px;
   font-style: italic;
+}
+
+/* Image-based thumbnails (thumbnails/thumbnail_directory) render as <img>,
+   which can't be recolored directly, so tint them via a CSS mask built from
+   the image's own alpha channel. */
+.one-color-icons .thumbnail-wrapper:has(.thumbnail-image),
+.one-color-icons .thumbnail-selected-preview:has(.thumbnail-image) {
+  /* Unprefixed mask-image is only reliably supported from Safari 15.4+;
+     declare -webkit- first so older Safari builds that only understand the
+     prefixed form still get it, falling through to the unprefixed
+     declaration on browsers that support both. */
+  -webkit-mask-image: var(--thumbnail-mask);
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: var(--thumbnail-mask);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  background-color: var(--w-color-text-context, currentColor);
+}
+
+.one-color-icons .thumbnail-image {
+  opacity: 0;
+}
+
+/* Template-based thumbnails (thumbnail_templates) render arbitrary HTML, so
+   there's no single image to mask. Instead set `color` on the wrapper so a
+   template using fill="currentColor" (SVG) or color: inherit picks up the
+   same tint automatically. */
+.one-color-icons .thumbnail-wrapper:not(:has(.thumbnail-image)):not(:has(.thumbnail-placeholder)),
+.one-color-icons .thumbnail-selected-preview:not(:has(.thumbnail-image)) {
+  color: var(--w-color-text-context, currentColor);
+}
+
+.one-color-icons .thumbnail-selected-preview {
+  filter: none;
+}
+
+.one-color-icons .thumbnail-wrapper > *:not(.thumbnail-placeholder) {
+  filter: none;
 }

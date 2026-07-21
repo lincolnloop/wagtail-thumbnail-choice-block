@@ -20,6 +20,7 @@ classifiers = [
     "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
     "Framework :: Wagtail",
     "Framework :: Wagtail :: 5",
     "Framework :: Wagtail :: 6",
@@ -43,21 +44,21 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
-    "pytest-django>=4.5",
-    "pytest-cov>=4.0",
-    "django-taggit>=3.0",
-    "ruff",
+    "pytest~=9.1.1",
+    "pytest-django~=4.12.0",
+    "pytest-cov~=7.1.0",
+    "django-taggit~=6.1.0",
+    "ruff~=0.15.22",
 ]
 accessibility = [
-    "selenium>=4.0",
-    "selenium-axe-python>=2.1",
+    "selenium~=4.46.0",
+    "selenium-axe-python~=2.2.0",
 ]
 test = [
-    "pytest>=7.0",
-    "pytest-django>=4.5",
-    "pytest-cov>=4.0",
-    "django-taggit>=3.0",
+    "pytest~=9.1.1",
+    "pytest-django~=4.12.0",
+    "pytest-cov~=7.1.0",
+    "django-taggit~=6.1.0",
 ]
 
 [project.urls]

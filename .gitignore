@@ -32,6 +32,10 @@ venv/
 env/
 ENV/
 
+# No committed lockfile: this is a library supporting a Django/Wagtail version
+# range, tested via uv --with overlays, not one pinned resolution.
+uv.lock
+
 # IDEs
 .vscode/
 .idea/
